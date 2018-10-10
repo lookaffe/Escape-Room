@@ -41,7 +41,7 @@ const int SENSORS[SENNUM] = {1, 2};
 const int ACTUATORS[ACTNUM] = {}; //nessun attuatore diretto
 const int DEVICES[DEVNUM] = {51, 52, 53, 54, 55, 56, 57, 58};
 const int RESET = 100;
-const int ACTIVE = 101;
+const int ACTIVE = 125;
 
 // Track the room game state
 int puzzleSolved = false;  // has the puzzle in the room been solved?
