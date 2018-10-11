@@ -29,6 +29,7 @@
 #define ACTNUM  0 //total amount of actuators
 #define DEVNUM  8 //total amount of internal devices
 
+// game spec definitions
 #define LIMONE 2 // pin della luce limone
 #define FUNGO 6 // pin della luce fungo
 
@@ -45,6 +46,7 @@ const int ACTIVE = 125;
 
 // Track the room game state
 int puzzleSolved = false;  // has the puzzle in the room been solved?
+bool gameActivated = false;
 
 //Used Pins
 const int sensPins[SENNUM] = {14, 15}; // // SS pins, Configurable, see typical pin layout above
@@ -53,9 +55,10 @@ const int devPins[DEVNUM] = {0, 1, 2, 3, 4, 5, 6, 7};
 
 int sensStatus[SENNUM] = {0, 0};
 
+//ModbusIP object
+Mudbus Mb;
 
-
-bool gameActivated = false;
+// game spec initializations
 bool started = false;
 constexpr uint8_t RST_PIN = 16;          // Configurable, see typical pin layout above
 
@@ -65,8 +68,7 @@ const int nOfTAG = 16; //numero di TAG abilitati
 String currentTAG[SENNUM]; //Valori del TAG letto
 String correctTAG[nOfTAG] = {"0221125142218", "0237112144218", "015741148218", "077161136218", "01836014245", "01357614245", "01674912245", "02154412245", "01349135218", "0141176138218", "07792135218", "077119144218", "01996914245", "01197914245", "02474112245", "02317614245"}; //i primi nOfTAG/2 sono del TAG A, gli altri del TAG B
 
-//ModbusIP object
-Mudbus Mb;
+
 
 void setup() {
   // reset for Ethernet Shield
@@ -221,11 +223,10 @@ void reset() {
   puzzleSolved = false;
   Mb.R[STATE] = puzzleSolved;
   Mb.R[RESET] = LOW;
-
-
-  // reset specifico
   gameActivated = false;
   Mb.R[ACTIVE] = gameActivated;
+
+  // game spec reset
   started = false;
 }
 
@@ -255,8 +256,8 @@ void printRegister() {
   for (int i = 0; i < DEVNUM; i++) {
     Serial.print("DEVICES "); Serial.print(i); Serial.print(" (reg "); Serial.print(DEVICES[i]); Serial.print(") - val:  "); Serial.println(Mb.R[DEVICES[i]]);
   }
-//  Serial.print("RESET (reg "); Serial.print(RESET); Serial.print(") - val:  "); Serial.println(Mb.R[RESET]);
-//  Serial.println();
+  //  Serial.print("RESET (reg "); Serial.print(RESET); Serial.print(") - val:  "); Serial.println(Mb.R[RESET]);
+  //  Serial.println();
   Serial.print("ACTIVATION: "); Serial.println(Mb.R[ACTIVE]);
   Serial.println();
 }
