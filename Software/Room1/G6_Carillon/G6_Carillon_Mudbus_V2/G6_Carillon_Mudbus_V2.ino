@@ -9,6 +9,8 @@
 #define ACTNUM  0 //total amount of actuators
 #define DEVNUM  1 //total amount of internal devices
 
+#define ALWAYSACTIVE 1 //1 if the game is always active
+
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0xE6, 0xE1, 26}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino
 uint8_t ip[] = {10, 0, 0, 106};                           //This needs to be unique in your network - only one puzzle can have this IP
 
@@ -18,10 +20,12 @@ const int SENSORS[SENNUM] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
 const int ACTUATORS[ACTNUM] = {};
 const int DEVICES[DEVNUM] = {51};
 const int RESET = 100;
+const int ACTIVE = 124;
 
 // Track the room game state
 bool puzzleSolved = false;  // has the puzzle in the room been solved?
 bool triggered = false; // has the control room triggered some actuator?
+bool gameActivated = ALWAYSACTIVE; // is the game active?
 
 //Used Pins
 const int sensPins[SENNUM] = {23, 21, 19, 17, 15, 22, 20, 18, 16}; // switch
@@ -70,6 +74,7 @@ void setup() {
 
   // Initial game state
   puzzleSolved = false;
+  Mb.R[ACTIVE] = gameActivated;
 
   // Configure the pins for input mode with pullup resistors.
   pinMode(sensPins[0], INPUT);
@@ -209,26 +214,32 @@ void reset() {
     digitalWrite(devPins[i], LOW);
     Mb.R[DEVICES[i]] = LOW;
   }
-  // reset specifico per il gioco
-  seq_clear(yourSequence);
   puzzleSolved = false;
   Mb.R[STATE] = puzzleSolved;
   Mb.R[RESET] = LOW;
+  if (!ALWAYSACTIVE) {
+    gameActivated = false;
+    Mb.R[ACTIVE] = gameActivated;
+  }
 }
 
 void listenFromEth() {
   if (Mb.R[RESET]) reset();
-  for (int i = 0; i < SENNUM ; i++) {
-    sensStatus[i] = Mb.R[SENSORS[i]];
-  }
-  triggered = 0;
-  for (int i = 0; i < ACTNUM ; i++) {
-    trigger(actPins[i], Mb.R[ACTUATORS[i]]);
-    triggered = triggered || Mb.R[ACTUATORS[i]];
-  }
-  for (int i = 0; i < DEVNUM ; i++) {
-    //specifico per questo gioco
-    if(Mb.R[DEVICES[i]]) buzzer(1000, 500);
+  else {
+    for (int i = 0; i < SENNUM ; i++) {
+      sensStatus[i] = Mb.R[SENSORS[i]];
+    }
+    triggered = 0;
+    for (int i = 0; i < ACTNUM ; i++) {
+      trigger(actPins[i], Mb.R[ACTUATORS[i]]);
+      triggered = triggered || Mb.R[ACTUATORS[i]];
+    }
+    for (int i = 0; i < DEVNUM ; i++) {
+      if (Mb.R[DEVICES[i]]) buzzer(1000, 500);
+    }
+    puzzleSolved = Mb.R[STATE];
+    if (Mb.R[STATE]) triggered = Mb.R[STATE];
+    gameActivated = Mb.R[ACTIVE];
   }
 }
 
@@ -243,8 +254,6 @@ void printRegister() {
   for (int i = 0; i < DEVNUM; i++) {
     Serial.print("DEVICES "); Serial.print(i); Serial.print(" (reg "); Serial.print(DEVICES[i]); Serial.print(") - val:  "); Serial.println(Mb.R[DEVICES[i]]);
   }
-  Serial.print("RESET (reg "); Serial.print(RESET); Serial.print(") - val:  "); Serial.println(Mb.R[RESET]);
-  Serial.println();
-  Serial.print("triggered: "); Serial.println(triggered);
+  Serial.print("ACTIVATION: "); Serial.println(Mb.R[ACTIVE]);
   Serial.println();
 }

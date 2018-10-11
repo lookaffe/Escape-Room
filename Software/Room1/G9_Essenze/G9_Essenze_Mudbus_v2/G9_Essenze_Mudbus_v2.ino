@@ -29,6 +29,8 @@
 #define ACTNUM  0 //total amount of actuators
 #define DEVNUM  8 //total amount of internal devices
 
+#define ALWAYSACTIVE 0 //1 if the game is always active
+
 // game spec definitions
 #define LIMONE 2 // pin della luce limone
 #define FUNGO 6 // pin della luce fungo
@@ -42,11 +44,12 @@ const int SENSORS[SENNUM] = {1, 2};
 const int ACTUATORS[ACTNUM] = {}; //nessun attuatore diretto
 const int DEVICES[DEVNUM] = {51, 52, 53, 54, 55, 56, 57, 58};
 const int RESET = 100;
-const int ACTIVE = 125;
+const int ACTIVE = 101;
 
 // Track the room game state
 int puzzleSolved = false;  // has the puzzle in the room been solved?
-bool gameActivated = false;
+bool triggered = false; // has the control room triggered some actuator?
+bool gameActivated = ALWAYSACTIVE; // is the game active?
 
 //Used Pins
 const int sensPins[SENNUM] = {14, 15}; // // SS pins, Configurable, see typical pin layout above
@@ -92,7 +95,8 @@ void setup() {
   Serial.println(Ethernet.localIP());
 
   // Initial game state
-  puzzleSolved = 0;
+  puzzleSolved = false;
+  Mb.R[ACTIVE] = gameActivated;
 
   //Set light Pin mode
   for (uint8_t a = 0; a < DEVNUM; a++) {
@@ -119,7 +123,7 @@ void loop() {
     started = true;
   }
 
-  if (!puzzleSolved && started) {
+  if (!triggered && started) {
     gameUpdate();
     isPuzzleSolved();
   }
@@ -212,6 +216,7 @@ void reset() {
   for (int i = 0; i < ACTNUM ; i++) {
     trigger(actPins[i], LOW);
   }
+  triggered = false;
   for (int i = 0; i < SENNUM ; i++) {
     sensStatus[i] = LOW;
     Mb.R[SENSORS[i]] = sensStatus[i];
@@ -223,8 +228,10 @@ void reset() {
   puzzleSolved = false;
   Mb.R[STATE] = puzzleSolved;
   Mb.R[RESET] = LOW;
-  gameActivated = false;
-  Mb.R[ACTIVE] = gameActivated;
+  if (!ALWAYSACTIVE) {
+    gameActivated = false;
+    Mb.R[ACTIVE] = gameActivated;
+  }
 
   // game spec reset
   started = false;
@@ -232,17 +239,22 @@ void reset() {
 
 void listenFromEth() {
   if (Mb.R[RESET]) reset();
-  for (int i = 0; i < SENNUM ; i++) {
-    sensStatus[i] = Mb.R[SENSORS[i]];
+  else {
+    for (int i = 0; i < SENNUM ; i++) {
+      sensStatus[i] = Mb.R[SENSORS[i]];
+    }
+    triggered = 0;
+    for (int i = 0; i < ACTNUM ; i++) {
+      trigger(actPins[i], Mb.R[ACTUATORS[i]]);
+      triggered = triggered || Mb.R[ACTUATORS[i]];
+    }
+    for (int i = 0; i < DEVNUM ; i++) {
+      digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
+    }
+    puzzleSolved = Mb.R[STATE];
+    if (Mb.R[STATE]) triggered = Mb.R[STATE];
+    gameActivated = Mb.R[ACTIVE];
   }
-  for (int i = 0; i < ACTNUM ; i++) {
-    trigger(actPins[i], Mb.R[ACTUATORS[i]]);
-  }
-  for (int i = 0; i < DEVNUM ; i++) {
-    digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
-  }
-  puzzleSolved = Mb.R[STATE];
-  gameActivated = Mb.R[ACTIVE];
 }
 
 void printRegister() {
@@ -256,8 +268,6 @@ void printRegister() {
   for (int i = 0; i < DEVNUM; i++) {
     Serial.print("DEVICES "); Serial.print(i); Serial.print(" (reg "); Serial.print(DEVICES[i]); Serial.print(") - val:  "); Serial.println(Mb.R[DEVICES[i]]);
   }
-  //  Serial.print("RESET (reg "); Serial.print(RESET); Serial.print(") - val:  "); Serial.println(Mb.R[RESET]);
-  //  Serial.println();
   Serial.print("ACTIVATION: "); Serial.println(Mb.R[ACTIVE]);
   Serial.println();
 }
