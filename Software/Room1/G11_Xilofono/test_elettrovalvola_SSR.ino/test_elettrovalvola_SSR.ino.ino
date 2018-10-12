@@ -2,7 +2,7 @@
 const int valvPin[VALVNUM] = {0, 2, 4, 6, 8, 7};
 const int buttonPin[VALVNUM] = {17, 15, 22, 20, 18, 16};
 int buttonState[VALVNUM] = {0, 0, 0, 0, 0, 0};
-const long fluxTime = 5000;
+const long fluxTime = 2000;
 
 
 void setup() {
@@ -15,7 +15,7 @@ void setup() {
 }
 void loop() {
 
-  for (int i = 0; i < 1; i++) {
+  for (int i = 0; i < VALVNUM; i++) {
     buttonState[i] = digitalRead(buttonPin[i]);
 
     if (!buttonState[i]) {
