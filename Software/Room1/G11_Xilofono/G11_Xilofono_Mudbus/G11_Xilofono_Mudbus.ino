@@ -1,50 +1,13 @@
-// TEENSY 3.5
+// TEENSY LC
 /*
  * Pin Tasto PLAY 19
  * Pin Tasto RESET 35
  * Pin Luce PLAY 21
  * Pin Luce RESET 33
- * Pin Pulsanti Elettrovalvole 17, 15, 22, 20, 18, 16
+ * Pin Relay Elettrovalvole 17, 15, 22, 20, 18, 16
  * Pin Martelletti 25, 24, 26, 28, 30, 32
- * Pin Relay Elettrovalvole 0, 2, 4, 6, 8, 7
  * Pin Servo 23
  */
-
-#include <SPI.h>
-#include <Ethernet.h>
-#include <Mudbus.h>
-#include <Bounce.h>
-
-#define SENNUM  10 //total amount of sensors
-#define ACTNUM  1 //total amount of actuators
-#define DISNUM  0 //total amount of internal dispositives
-
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE5}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 0, 101};                           //This needs to be unique in your network - only one puzzle can have this IP
-
-//Modbus Registers Offsets (0-9999)
-const int STATE = 0;
-const int SENSORS[SENNUM] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-const int ACTUATORS[ACTNUM] = {101};
-const int DISPOS[DISNUM] = {};
-const int RESET = 999;
-
-// Track the room game state
-bool puzzleSolved = false;  // has the puzzle in the room been solved?
-bool triggered = false; // has the control room triggered some actuator?
-
-//Used Pins
-const int sensPins[SENNUM] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 24}; // Capacitor
-const int actPins[ACTNUM] = {39}; // relay
-
-int sensStatus[SENNUM] = {1,1,1,1,1,1,1,1,1,1};
-
-int lightPin[SENNUM] = {14, 15, 16, 17, 18, 19, 20, 21, 22, 23} ;
-int sequence[SENNUM] = {0, 1, 1, 0, 0, 0 , 1, 1, 1, 0};      //the right sequence
-int yourSequence[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
-
-
- 
 const int MAX_LEVEL = 100;
 int sequence[MAX_LEVEL];
 int your_sequence[MAX_LEVEL];
