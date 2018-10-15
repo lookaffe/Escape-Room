@@ -58,24 +58,38 @@ Bounce button0 = Bounce(sensPins[0], 100); //Pin button
 
 // per questo gioco------
 const int playLightPin = 21;
-const int playButtonPins = 19;
-int playState = 0;
+const int playButtonPin = 19;
+boolean playState = false;
 
 const int resetLightPin = 33;
-const int resetvalvButtonPins = 35;
-int resetState = 0;
+const int resetButtonPin = 35;
+boolean resetState = false;
 
 const int valvPins[VALNUM] = {0, 2, 4, 6, 8, 7};
 const int valvButtonPins[VALNUM] = {17, 15, 22, 20, 18, 16};
 int valvButtonState[VALNUM] = {0, 0, 0, 0, 0, 0};
 
 const int hammButtonPins[HAMNUM] = {25, 24, 26, 28, 30, 32};
-int hammButtonState [HAMNUM] = {0, 0, 0, 0, 0, 0};
+int hammButtonState[HAMNUM] = {0, 0, 0, 0, 0, 0};
 
-const long fluxTime = 2000; // 2900 per 0,5 cl
+const long fluxTime = 200; // 2900 per 0,5 cl
 
-int waterSteps[VALNUM] = {1, 2, 0, 3, 2, 1};  //quantità d'acqua per le note giuste
-int yourWaterSteps[VALNUM] {0, 0, 0, 0, 0, 0};
+int waterSteps[VALNUM] = {8, 6, 5, 10, 3, 1};  //quantità d'acqua per le note giuste Verde, Blu, Rosa, Rosso, Giallo, Nero
+int yourWaterSteps[VALNUM] = {0, 0, 0, 0, 0, 0};
+int lastSteps[VALNUM] = {0, 0, 0, 0, 0, 0}; //only for debugging
+
+int sequence[HAMNUM] = {0, 1, 1, 0, 0, 0};      //the right sequence
+int yourSequence[HAMNUM] = {0, 0, 0, 0, 0, 0};   //user sequence
+
+unsigned long interrupt_time = 0;
+
+Bounce button0 = Bounce(hammButtonPins[0], 10);
+Bounce button1 = Bounce(hammButtonPins[1], 10);  // 10 = 10 ms debounce time
+Bounce button2 = Bounce(hammButtonPins[2], 10);  // which is appropriate for
+Bounce button3 = Bounce(hammButtonPins[3], 10);  // most mechanical pushbuttons
+Bounce button4 = Bounce(hammButtonPins[4], 10);
+Bounce button5 = Bounce(hammButtonPins[5], 10);
+
 //-----------------------
 
 //ModbusIP object
@@ -108,10 +122,15 @@ void setup() {
   for (int i = 0; i < HAMNUM; i++) {
     pinMode(hammButtonPins[i], INPUT);
   }
+  pinMode(playButtonPin, INPUT);
   pinMode(playLightPin, OUTPUT);
   digitalWrite(playLightPin, LOW);
+
+  pinMode(resetButtonPin, INPUT);
   pinMode(resetLightPin, OUTPUT);
-  digitalWrite(resetLightPin, LOW);
+  digitalWrite(resetLightPin, HIGH);
+
+  interrupt_time = millis();
 }
 
 void loop()
@@ -127,16 +146,27 @@ void loop()
 }
 
 void gameUpdate() {
-  fillTheGlasses();
+  playState = seq_cmp(yourWaterSteps, waterSteps, VALNUM);
+  digitalWrite(resetLightPin, !playState);
+  digitalWrite(playLightPin, playState);
+  if (!playState) fillTheGlasses();
+  else playInstrument();
 }
 
 void fillTheGlasses() {
+  resetState = !digitalRead(resetButtonPin);
+  if (resetState) {
+    for (int i = 0; i < VALNUM; i++) {
+      yourWaterSteps[i] = 0;
+    }
+    emptiesGlasses();
+  }
   for (int i = 0; i < VALNUM; i++) {
     valvButtonState[i] = digitalRead(valvButtonPins[i]);
     Mb.R[SENSORS[i + 1]] = !valvButtonState[i];
-        if (!valvButtonState[i]) {
+    if (!valvButtonState[i]) {
       openValv(i);
-      yourWaterSteps[i] = yourWaterSteps[i] +1;
+      yourWaterSteps[i] = yourWaterSteps[i] + 1;
     }
   }
 }
@@ -145,6 +175,76 @@ void openValv(int v) {
   digitalWrite(valvPins[v], HIGH); // HIGH se uso SSRelay
   delay(fluxTime);
   digitalWrite(valvPins[v], LOW);
+}
+
+void emptiesGlasses() {
+  // servo
+}
+
+void playInstrument() {
+  buttonUpdate();
+  if (millis() - interrupt_time > 3000) {
+    interrupt_time = millis();
+    if (seq_cmp(yourSequence, sequence)) puzzleSolved = true;
+    else {
+      puzzleSolved = false;
+      seq_clear(yourSequence);
+    }
+    Mb.R[STATE] = puzzleSolved;
+  }
+  isPuzzleSolved();
+}
+
+void buttonUpdate() {
+  button0.update();
+  button1.update();
+  button2.update();
+  button3.update();
+  button4.update();
+  button5.update();
+
+  if (button0.fallingEdge()) {
+    fallingEdgeAction(0);
+  }
+  if (button1.fallingEdge()) {
+    fallingEdgeAction(1);
+  }
+  if (button2.fallingEdge()) {
+    fallingEdgeAction(2);
+  }
+  if (button3.fallingEdge()) {
+    fallingEdgeAction(3);
+  }
+  if (button4.fallingEdge()) {
+    fallingEdgeAction(4);
+  }
+  if (button5.fallingEdge()) {
+    fallingEdgeAction(5);
+  }
+}
+
+void fallingEdgeAction(int b) {
+  hammButtonState[b] = hammButtonState[b] + 1;
+  yourSequence[b] = hammButtonState[b];
+  Mb.R[SENSORS[b]] = hammButtonState[b][b];
+  interrupt_time = millis();
+}
+
+//compare the two sequences
+boolean seq_cmp(int *a, int *b, int siz) {
+  for (int n = 0; n < siz; n++) if (a[n] != b[n]) return false;
+  return true;
+}
+
+//clear the sequence
+void seq_clear(int *s) {
+  for (int n = 0; n < SENNUM; n++)  {
+    s[n] = 0;
+    sensStatus[n] = LOW;
+    Mb.R[SENSORS[n]] = sensStatus[n];
+    pressed = 0;
+    interrupt_time = millis();
+  }
 }
 
 void isPuzzleSolved() {
@@ -196,7 +296,6 @@ void listenFromEth() {
       switch (i) {
         case 0: // play light
           digitalWrite(playLightPin, Mb.R[DEVICES[i]]);
-          Serial.println ("accade");
           break;
         case 7: //reset light
           digitalWrite(resetLightPin, Mb.R[DEVICES[i]]);
@@ -217,8 +316,12 @@ void listenFromEth() {
 }
 
 void printSteps() {
-for (int i = 0; i < VALNUM; i++) {
-    Serial.print("Glass "); Serial.print(i); Serial.print(": "); Serial.print(yourWaterSteps[i]); Serial.print(" of  "); Serial.println(waterSteps[i]);
+  if (!seq_cmp(lastSteps, yourWaterSteps, VALNUM)) {
+    Serial.println();
+    for (int i = 0; i < VALNUM; i++) {
+      Serial.print("Glass "); Serial.print(i); Serial.print(": "); Serial.print(yourWaterSteps[i]); Serial.print(" of  "); Serial.println(waterSteps[i]);
+      lastSteps[i] = yourWaterSteps[i];
+    }
   }
 }
 
