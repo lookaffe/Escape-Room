@@ -15,6 +15,7 @@
 #include <Ethernet.h>
 #include <Mudbus.h>
 #include <Bounce.h>
+#include <Servo.h>
 
 #define SENNUM  14 //total amount of sensors
 #define ACTNUM  0 //total amount of actuators
@@ -83,7 +84,8 @@ int lastHamm[noteNum] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; //only for d
 boolean pressed = false;
 unsigned long interrupt_time = 0;
 
-
+Servo glassesServo;
+int servoPos = 0;
 
 Bounce hammButton0 = Bounce(25, 100);
 Bounce hammButton1 = Bounce(24, 100);  // 10 = 10 ms debounce time
@@ -133,6 +135,9 @@ void setup() {
   digitalWrite(*resetLightPin, HIGH);
 
   interrupt_time = millis();
+
+  glassesServo.attach(23);
+  reset();
 }
 
 void loop()
@@ -148,7 +153,7 @@ void loop()
 }
 
 void gameUpdate() {
-  if (0) { //!waterSolved) {
+  if (!waterSolved) {
     fillTheGlasses();
     waterSolved = seq_cmp(yourWaterSteps, waterSteps, VALNUM);
     digitalWrite(*resetLightPin, !waterSolved);
@@ -187,7 +192,16 @@ void emptiesGlasses() {
     yourWaterSteps[i] = 0;
     Mb.R[SENSORS[i + 1]] = yourWaterSteps[i];
   }
-  // servo
+  for (servoPos = 0; servoPos <= 110; servoPos++) { // goes from 0 degrees to 180 degrees
+    Serial.print("servoPos :");Serial.println(servoPos);// in steps of 1 degree
+    glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
+  for (servoPos = 110; servoPos >= 0; servoPos--) { // goes from 180 degrees to 0 degrees
+    Serial.print("servoPos :");Serial.println(servoPos);
+    glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
 }
 
 void buttonUpdate(int ite) {
