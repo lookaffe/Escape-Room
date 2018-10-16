@@ -50,26 +50,20 @@ const int devPins[DEVNUM] = {21, 0, 2, 4, 6, 8, 7, 33, 23} ; // , 21 playLight, 
 
 int sensStatus[SENNUM] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-int lightPin[SENNUM] = {14, 15, 16, 17, 18, 19, 20, 21, 22, 23} ;
-int sequence[SENNUM] = {0, 1, 1, 0, 0, 0 , 1, 1, 1, 0};      //the right sequence
-int yourSequence[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
-
-Bounce button0 = Bounce(sensPins[0], 100); //Pin button
-
 // per questo gioco------
-const int playLightPin = 21;
-const int playButtonPin = 19;
+const int *playLightPin = &devPins[0];
+const int *playButtonPin = &sensPins[0];
 boolean playState = false;
 
-const int resetLightPin = 33;
-const int resetButtonPin = 35;
+const int *resetLightPin = &devPins[7];
+const int *resetButtonPin = &sensPins[7];
 boolean resetState = false;
 
-const int valvPins[VALNUM] = {0, 2, 4, 6, 8, 7};
-const int valvButtonPins[VALNUM] = {17, 15, 22, 20, 18, 16};
+const int *valvPins[VALNUM] = {&devPins[1], &devPins[2], &devPins[3], &devPins[4], &devPins[5], &devPins[6]};
+const int *valvButtonPins[VALNUM] = {&sensPins[1], &sensPins[2], &sensPins[3], &sensPins[4], &sensPins[5], &sensPins[6]};
 int valvButtonState[VALNUM] = {0, 0, 0, 0, 0, 0};
 
-const int hammButtonPins[HAMNUM] = {25, 24, 26, 28, 30, 32};
+const int *hammButtonPins[HAMNUM] = {&sensPins[8], &sensPins[9], &sensPins[10], &sensPins[11], &sensPins[12], &sensPins[13]};
 int hammButtonState[HAMNUM] = {0, 0, 0, 0, 0, 0};
 
 const long fluxTime = 200; // 2900 per 0,5 cl
@@ -78,17 +72,20 @@ int waterSteps[VALNUM] = {8, 6, 5, 10, 3, 1};  //quantità d'acqua per le note g
 int yourWaterSteps[VALNUM] = {0, 0, 0, 0, 0, 0};
 int lastSteps[VALNUM] = {0, 0, 0, 0, 0, 0}; //only for debugging
 
-int sequence[HAMNUM] = {0, 1, 1, 0, 0, 0};      //the right sequence
-int yourSequence[HAMNUM] = {0, 0, 0, 0, 0, 0};   //user sequence
+int noteNum = 14;
+int hammSequence[noteNum] = {0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2, 1, 1, 0};      //the right sequence
+int yourHammSequence[noteNum] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
+int lastHam[noteNum] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; //only for debugging
 
+boolean pressed = false;
 unsigned long interrupt_time = 0;
 
-Bounce button0 = Bounce(hammButtonPins[0], 10);
-Bounce button1 = Bounce(hammButtonPins[1], 10);  // 10 = 10 ms debounce time
-Bounce button2 = Bounce(hammButtonPins[2], 10);  // which is appropriate for
-Bounce button3 = Bounce(hammButtonPins[3], 10);  // most mechanical pushbuttons
-Bounce button4 = Bounce(hammButtonPins[4], 10);
-Bounce button5 = Bounce(hammButtonPins[5], 10);
+Bounce button0 = Bounce(25, 10);
+Bounce button1 = Bounce(24, 10);  // 10 = 10 ms debounce time
+Bounce button2 = Bounce(26, 10);  // which is appropriate for
+Bounce button3 = Bounce(28, 10);  // most mechanical pushbuttons
+Bounce button4 = Bounce(30, 10);
+Bounce button5 = Bounce(32, 10);
 
 //-----------------------
 
@@ -115,20 +112,20 @@ void setup() {
 
   //Set Pin mode
   for (int i = 0; i < VALNUM; i++) {
-    pinMode(valvPins[i], OUTPUT);
-    pinMode(valvButtonPins[i], INPUT);
-    digitalWrite(valvPins[i], LOW);  // LOW se uso SSRelay
+    pinMode(*valvPins[i], OUTPUT);
+    pinMode(*valvButtonPins[i], INPUT);
+    digitalWrite(*valvPins[i], LOW);  // LOW se uso SSRelay
   }
   for (int i = 0; i < HAMNUM; i++) {
-    pinMode(hammButtonPins[i], INPUT);
+    pinMode(*hammButtonPins[i], INPUT);
   }
-  pinMode(playButtonPin, INPUT);
-  pinMode(playLightPin, OUTPUT);
-  digitalWrite(playLightPin, LOW);
+  pinMode(*playButtonPin, INPUT);
+  pinMode(*playLightPin, OUTPUT);
+  digitalWrite(*playLightPin, LOW);
 
-  pinMode(resetButtonPin, INPUT);
-  pinMode(resetLightPin, OUTPUT);
-  digitalWrite(resetLightPin, HIGH);
+  pinMode(*resetButtonPin, INPUT);
+  pinMode(*resetLightPin, OUTPUT);
+  digitalWrite(*resetLightPin, HIGH);
 
   interrupt_time = millis();
 }
@@ -147,34 +144,38 @@ void loop()
 
 void gameUpdate() {
   playState = seq_cmp(yourWaterSteps, waterSteps, VALNUM);
-  digitalWrite(resetLightPin, !playState);
-  digitalWrite(playLightPin, playState);
+  digitalWrite(*resetLightPin, !playState);
+  Mb.R[DEVICES[7]] = !playState;
+  digitalWrite(*playLightPin, playState);
+  Mb.R[DEVICES[0]] = playState;
   if (!playState) fillTheGlasses();
   else playInstrument();
 }
 
 void fillTheGlasses() {
-  resetState = !digitalRead(resetButtonPin);
+  resetState = !digitalRead(*resetButtonPin);
   if (resetState) {
     for (int i = 0; i < VALNUM; i++) {
       yourWaterSteps[i] = 0;
+      Mb.R[SENSORS[i + 1]] = yourWaterSteps[i];
     }
     emptiesGlasses();
   }
   for (int i = 0; i < VALNUM; i++) {
-    valvButtonState[i] = digitalRead(valvButtonPins[i]);
-    Mb.R[SENSORS[i + 1]] = !valvButtonState[i];
+    valvButtonState[i] = digitalRead(*valvButtonPins[i]);
     if (!valvButtonState[i]) {
       openValv(i);
       yourWaterSteps[i] = yourWaterSteps[i] + 1;
+      Mb.R[SENSORS[i + 1]] = yourWaterSteps[i];
     }
   }
+  interrupt_time = millis();
 }
 
 void openValv(int v) {
-  digitalWrite(valvPins[v], HIGH); // HIGH se uso SSRelay
+  digitalWrite(*valvPins[v], HIGH); // HIGH se uso SSRelay
   delay(fluxTime);
-  digitalWrite(valvPins[v], LOW);
+  digitalWrite(*valvPins[v], LOW);
 }
 
 void emptiesGlasses() {
@@ -183,16 +184,19 @@ void emptiesGlasses() {
 
 void playInstrument() {
   buttonUpdate();
-  if (millis() - interrupt_time > 3000) {
-    interrupt_time = millis();
-    if (seq_cmp(yourSequence, sequence)) puzzleSolved = true;
-    else {
-      puzzleSolved = false;
-      seq_clear(yourSequence);
+  if (pressed) {
+    if (millis() - interrupt_time > 3000) {
+      pressed = false;
+      interrupt_time = millis();
+      if (seq_cmp(yourHammSequence, hammSequence, HAMNUM)) puzzleSolved = true;
+      else {
+        puzzleSolved = false;
+        seq_clear(yourHammSequence, HAMNUM);
+      }
+      Mb.R[STATE] = puzzleSolved;
     }
-    Mb.R[STATE] = puzzleSolved;
   }
-  isPuzzleSolved();
+  printHam();
 }
 
 void buttonUpdate() {
@@ -224,9 +228,10 @@ void buttonUpdate() {
 }
 
 void fallingEdgeAction(int b) {
+  pressed = true;
   hammButtonState[b] = hammButtonState[b] + 1;
-  yourSequence[b] = hammButtonState[b];
-  Mb.R[SENSORS[b]] = hammButtonState[b][b];
+  yourHammSequence[b] = hammButtonState[b];
+  Mb.R[SENSORS[b]] = hammButtonState[b];
   interrupt_time = millis();
 }
 
@@ -237,12 +242,12 @@ boolean seq_cmp(int *a, int *b, int siz) {
 }
 
 //clear the sequence
-void seq_clear(int *s) {
-  for (int n = 0; n < SENNUM; n++)  {
+void seq_clear(int *s, int siz) {
+  for (int n = 0; n < siz; n++)  {
     s[n] = 0;
     sensStatus[n] = LOW;
     Mb.R[SENSORS[n]] = sensStatus[n];
-    pressed = 0;
+    pressed = false;
     interrupt_time = millis();
   }
 }
@@ -295,10 +300,10 @@ void listenFromEth() {
     for (int i = 0; i < DEVNUM ; i++) {
       switch (i) {
         case 0: // play light
-          digitalWrite(playLightPin, Mb.R[DEVICES[i]]);
+          digitalWrite(*playLightPin, Mb.R[DEVICES[i]]);
           break;
         case 7: //reset light
-          digitalWrite(resetLightPin, Mb.R[DEVICES[i]]);
+          digitalWrite(*resetLightPin, Mb.R[DEVICES[i]]);
           break;
         case 8: // servo
           digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
@@ -321,6 +326,16 @@ void printSteps() {
     for (int i = 0; i < VALNUM; i++) {
       Serial.print("Glass "); Serial.print(i); Serial.print(": "); Serial.print(yourWaterSteps[i]); Serial.print(" of  "); Serial.println(waterSteps[i]);
       lastSteps[i] = yourWaterSteps[i];
+    }
+  }
+}
+
+void printHam() {
+  if (!seq_cmp(lastHAmm, yourHammSequence, HAMNUM)) {
+    Serial.println();
+    for (int i = 0; i < HAMNUM; i++) {
+      Serial.print("Hammer "); Serial.print(i); Serial.print(": "); Serial.print(yourHammSequence[i]); Serial.print(" of  "); Serial.println(hammSequence[i]);
+      lastHAmm[i] = yourHammSequence[i];
     }
   }
 }
