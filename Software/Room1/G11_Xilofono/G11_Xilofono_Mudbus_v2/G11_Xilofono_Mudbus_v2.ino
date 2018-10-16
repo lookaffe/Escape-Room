@@ -27,7 +27,7 @@
 #define HAMNUM 6
 // ----------------------
 
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE4}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE4}; //Dipende da ogni disposnoteivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 0, 111};                           //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
@@ -71,21 +71,26 @@ const long fluxTime = 200; // 2900 per 0,5 cl
 int waterSteps[VALNUM] = {8, 6, 5, 10, 3, 1};  //quantità d'acqua per le note giuste Verde, Blu, Rosa, Rosso, Giallo, Nero
 int yourWaterSteps[VALNUM] = {0, 0, 0, 0, 0, 0};
 int lastSteps[VALNUM] = {0, 0, 0, 0, 0, 0}; //only for debugging
+boolean waterSolved = false;
 
-int noteNum = 14;
+const int noteNum = 14;
+int note = 0; // number of iteration
+
 int hammSequence[noteNum] = {0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2, 1, 1, 0};      //the right sequence
 int yourHammSequence[noteNum] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
-int lastHam[noteNum] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; //only for debugging
+int lastHamm[noteNum] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; //only for debugging
 
 boolean pressed = false;
 unsigned long interrupt_time = 0;
 
-Bounce button0 = Bounce(25, 10);
-Bounce button1 = Bounce(24, 10);  // 10 = 10 ms debounce time
-Bounce button2 = Bounce(26, 10);  // which is appropriate for
-Bounce button3 = Bounce(28, 10);  // most mechanical pushbuttons
-Bounce button4 = Bounce(30, 10);
-Bounce button5 = Bounce(32, 10);
+
+
+Bounce button0 = Bounce(25, 100);
+Bounce button1 = Bounce(24, 100);  // 10 = 10 ms debounce time
+Bounce button2 = Bounce(26, 100);  // which is appropriate for
+Bounce button3 = Bounce(28, 100);  // most mechanical pushbuttons
+Bounce button4 = Bounce(30, 100);
+Bounce button5 = Bounce(32, 100);
 
 //-----------------------
 
@@ -143,24 +148,22 @@ void loop()
 }
 
 void gameUpdate() {
-  playState = seq_cmp(yourWaterSteps, waterSteps, VALNUM);
-  digitalWrite(*resetLightPin, !playState);
-  Mb.R[DEVICES[7]] = !playState;
-  digitalWrite(*playLightPin, playState);
-  Mb.R[DEVICES[0]] = playState;
-  if (!playState) fillTheGlasses();
-  else playInstrument();
+  if (!waterSolved) {
+    fillTheGlasses();
+    waterSolved = seq_cmp(yourWaterSteps, waterSteps, VALNUM);
+    digitalWrite(*resetLightPin, !waterSolved);
+    Mb.R[DEVICES[7]] = !waterSolved;
+    digitalWrite(*playLightPin, waterSolved);
+    Mb.R[DEVICES[0]] = waterSolved;
+  }
+  else {
+    playInstrument();
+  }
 }
 
 void fillTheGlasses() {
   resetState = !digitalRead(*resetButtonPin);
-  if (resetState) {
-    for (int i = 0; i < VALNUM; i++) {
-      yourWaterSteps[i] = 0;
-      Mb.R[SENSORS[i + 1]] = yourWaterSteps[i];
-    }
-    emptiesGlasses();
-  }
+  if (resetState)  emptiesGlasses();
   for (int i = 0; i < VALNUM; i++) {
     valvButtonState[i] = digitalRead(*valvButtonPins[i]);
     if (!valvButtonState[i]) {
@@ -179,27 +182,14 @@ void openValv(int v) {
 }
 
 void emptiesGlasses() {
+  for (int i = 0; i < VALNUM; i++) {
+    yourWaterSteps[i] = 0;
+    Mb.R[SENSORS[i + 1]] = yourWaterSteps[i];
+  }
   // servo
 }
 
-void playInstrument() {
-  buttonUpdate();
-  if (pressed) {
-    if (millis() - interrupt_time > 3000) {
-      pressed = false;
-      interrupt_time = millis();
-      if (seq_cmp(yourHammSequence, hammSequence, HAMNUM)) puzzleSolved = true;
-      else {
-        puzzleSolved = false;
-        seq_clear(yourHammSequence, HAMNUM);
-      }
-      Mb.R[STATE] = puzzleSolved;
-    }
-  }
-  printHam();
-}
-
-void buttonUpdate() {
+void buttonUpdate(int ite) {
   button0.update();
   button1.update();
   button2.update();
@@ -207,32 +197,65 @@ void buttonUpdate() {
   button4.update();
   button5.update();
 
+
   if (button0.fallingEdge()) {
-    fallingEdgeAction(0);
+    fallingEdgeAction(0, ite);
   }
   if (button1.fallingEdge()) {
-    fallingEdgeAction(1);
+    fallingEdgeAction(1, ite);
   }
   if (button2.fallingEdge()) {
-    fallingEdgeAction(2);
+    fallingEdgeAction(2, ite);
   }
   if (button3.fallingEdge()) {
-    fallingEdgeAction(3);
+    fallingEdgeAction(3, ite);
   }
   if (button4.fallingEdge()) {
-    fallingEdgeAction(4);
+    fallingEdgeAction(4, ite);
   }
   if (button5.fallingEdge()) {
-    fallingEdgeAction(5);
+    fallingEdgeAction(5, ite);
   }
 }
 
-void fallingEdgeAction(int b) {
+void fallingEdgeAction(int b, int iter) {
   pressed = true;
-  hammButtonState[b] = hammButtonState[b] + 1;
-  yourHammSequence[b] = hammButtonState[b];
-  Mb.R[SENSORS[b]] = hammButtonState[b];
+  yourHammSequence[iter] = b;
+  //Mb.R[SENSORS[b]] = hammButtonState[b];
   interrupt_time = millis();
+  Serial.print("iter: "); Serial.print(iter); Serial.print(" - pressed: "); Serial.println(b);
+  printHam();
+  note++;
+}
+
+void playInstrument() {
+  if (note < noteNum) {
+    buttonUpdate(note);
+    if (pressed) {
+      if (millis() - interrupt_time > 3000 || note == noteNum) {
+        Serial.println("too slow");
+        pressed = false;
+        note = 0;
+        interrupt_time = millis();
+        if (seq_cmp(yourHammSequence, hammSequence, noteNum)) {
+          puzzleSolved = true;
+          triggered = 1;
+        }
+        else {
+          puzzleSolved = false;
+          seq_clear(yourHammSequence, noteNum);
+          printHam();
+        }
+        Mb.R[STATE] = puzzleSolved;
+      }
+    }
+  }
+  else {
+    seq_clear(yourHammSequence, noteNum);
+    printHam();
+    pressed = false;
+    note = 0;
+  }
 }
 
 //compare the two sequences
@@ -284,6 +307,11 @@ void reset() {
     gameActivated = false;
     Mb.R[ACTIVE] = gameActivated;
   }
+
+  // reset per il gioco
+  waterSolved = 0;
+  emptiesGlasses();
+  seq_clear(yourHammSequence, noteNum);
 }
 
 void listenFromEth() {
@@ -331,11 +359,11 @@ void printSteps() {
 }
 
 void printHam() {
-  if (!seq_cmp(lastHAmm, yourHammSequence, HAMNUM)) {
+  if (!seq_cmp(lastHamm, yourHammSequence, noteNum)) {
     Serial.println();
-    for (int i = 0; i < HAMNUM; i++) {
-      Serial.print("Hammer "); Serial.print(i); Serial.print(": "); Serial.print(yourHammSequence[i]); Serial.print(" of  "); Serial.println(hammSequence[i]);
-      lastHAmm[i] = yourHammSequence[i];
+    for (int i = 0; i < noteNum; i++) {
+      Serial.print("Played hammer "); Serial.print(i); Serial.print(": "); Serial.print(yourHammSequence[i]); Serial.print(" instead  "); Serial.println(hammSequence[i]);
+      lastHamm[i] = yourHammSequence[i];
     }
   }
 }
