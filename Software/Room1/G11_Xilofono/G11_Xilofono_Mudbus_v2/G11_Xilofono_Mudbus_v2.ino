@@ -85,12 +85,12 @@ unsigned long interrupt_time = 0;
 
 
 
-Bounce button0 = Bounce(25, 100);
-Bounce button1 = Bounce(24, 100);  // 10 = 10 ms debounce time
-Bounce button2 = Bounce(26, 100);  // which is appropriate for
-Bounce button3 = Bounce(28, 100);  // most mechanical pushbuttons
-Bounce button4 = Bounce(30, 100);
-Bounce button5 = Bounce(32, 100);
+Bounce hammButton0 = Bounce(25, 100);
+Bounce hammButton1 = Bounce(24, 100);  // 10 = 10 ms debounce time
+Bounce hammButton2 = Bounce(26, 100);  // which is appropriate for
+Bounce hammButton3 = Bounce(28, 100);  // most mechanical pushbuttons
+Bounce hammButton4 = Bounce(30, 100);
+Bounce hammButton5 = Bounce(32, 100);
 
 //-----------------------
 
@@ -148,13 +148,14 @@ void loop()
 }
 
 void gameUpdate() {
-  if (!waterSolved) {
+  if (0) { //!waterSolved) {
     fillTheGlasses();
     waterSolved = seq_cmp(yourWaterSteps, waterSteps, VALNUM);
     digitalWrite(*resetLightPin, !waterSolved);
     Mb.R[DEVICES[7]] = !waterSolved;
     digitalWrite(*playLightPin, waterSolved);
     Mb.R[DEVICES[0]] = waterSolved;
+    if (waterSolved) Mb.R[SENSORS[0]] = waterSolved;
   }
   else {
     playInstrument();
@@ -190,30 +191,30 @@ void emptiesGlasses() {
 }
 
 void buttonUpdate(int ite) {
-  button0.update();
-  button1.update();
-  button2.update();
-  button3.update();
-  button4.update();
-  button5.update();
+  hammButton0.update();
+  hammButton1.update();
+  hammButton2.update();
+  hammButton3.update();
+  hammButton4.update();
+  hammButton5.update();
 
 
-  if (button0.fallingEdge()) {
+  if (hammButton0.fallingEdge()) {
     fallingEdgeAction(0, ite);
   }
-  if (button1.fallingEdge()) {
+  if (hammButton1.fallingEdge()) {
     fallingEdgeAction(1, ite);
   }
-  if (button2.fallingEdge()) {
+  if (hammButton2.fallingEdge()) {
     fallingEdgeAction(2, ite);
   }
-  if (button3.fallingEdge()) {
+  if (hammButton3.fallingEdge()) {
     fallingEdgeAction(3, ite);
   }
-  if (button4.fallingEdge()) {
+  if (hammButton4.fallingEdge()) {
     fallingEdgeAction(4, ite);
   }
-  if (button5.fallingEdge()) {
+  if (hammButton5.fallingEdge()) {
     fallingEdgeAction(5, ite);
   }
 }
@@ -229,6 +230,11 @@ void fallingEdgeAction(int b, int iter) {
 }
 
 void playInstrument() {
+  if(!pressed) playState = !digitalRead(*playButtonPin);
+  if (playState) {
+    Serial.println("play pressed");
+    Mb.R[SENSORS[0]]++;
+  }
   if (note < noteNum) {
     buttonUpdate(note);
     if (pressed) {
@@ -249,6 +255,8 @@ void playInstrument() {
         Mb.R[STATE] = puzzleSolved;
       }
     }
+    digitalWrite(*playLightPin, !pressed);
+    Mb.R[DEVICES[0]] = !pressed;
   }
   else {
     seq_clear(yourHammSequence, noteNum);
