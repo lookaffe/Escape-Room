@@ -79,21 +79,22 @@ void gameUpdate() {
 }
 
 void isPuzzleSolved() {
-  trigger(actPins[0], puzzleSolved);
+  trigger(0, puzzleSolved);
   Mb.R[STATE] = puzzleSolved;
 }
 
 // action on "trigger"
 void trigger(int s, boolean trig) {
+  Serial.print("trigger: ");Serial.println(s);
   Mb.R[ACTUATORS[s]] = trig;
-  digitalWrite(s, !trig);
+  digitalWrite(actPins[s], !trig);
   delay(10);
 }
 
 // reset the game
 void reset() {
   for (int i = 0; i < ACTNUM ; i++) {
-    trigger(actPins[i], LOW);
+    trigger(i, LOW);
   }
   triggered = false;
   for (int i = 0; i < SENNUM ; i++) {
@@ -121,7 +122,7 @@ void listenFromEth() {
     }
     triggered = 0;
     for (int i = 0; i < ACTNUM ; i++) {
-      trigger(actPins[i], Mb.R[ACTUATORS[i]]);
+      trigger(i, Mb.R[ACTUATORS[i]]);
       triggered = triggered || Mb.R[ACTUATORS[i]];
     }
     for (int i = 0; i < DEVNUM ; i++) {

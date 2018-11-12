@@ -36,7 +36,7 @@ bool gameActivated = ALWAYSACTIVE; // is the game active?
 const int actPins[ACTNUM] = {22, 23}; // relay
 const int devPins[DEVNUM] = {} ;
 
-int sequence[SENNUM] = {0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};    //the right sequence
+int sequence[SENNUM] = {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0};    //the right sequence
 int yourSequence[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; //user sequence
 
 boolean sensStatus[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -81,8 +81,8 @@ void setup() {
   // specifico per questo gioco
   pinMode(actPins[0], OUTPUT);
   pinMode(actPins[1], OUTPUT);
-  digitalWrite(actPins[0], LOW);
-  digitalWrite(actPins[1], LOW);
+  digitalWrite(actPins[0], HIGH);
+  digitalWrite(actPins[1], HIGH);
 
   // 0x5A is the MPR121 I2C address on the Bare Touch Board
   if (!MPR121a.begin(0x5A)) {
@@ -214,23 +214,23 @@ void printFeetValues(int i, bool a) {
 void isPuzzleSolved() {
   puzzleSolved = (seq_cmp(yourSequence, sequence)) ? true : false;
   triggered = puzzleSolved;
-//  trigger(actPins[0], puzzleSolved);
-//  trigger(actPins[1], puzzleSolved);
+  trigger(0, puzzleSolved);
+  trigger(1, puzzleSolved);
   Mb.R[STATE] = puzzleSolved;
 }
 
 // Azione su ricezione comando "trigger"
 void trigger(int s, boolean trig) {
-  Serial.print("triggered: "); Serial.println(s); Serial.print(" - val: "); Serial.println(trig);
   Mb.R[ACTUATORS[s]] = trig;
-  digitalWrite(s, !trig);
+  Serial.print(" was just touched");Serial.println(trig);
+  digitalWrite(actPins[s], !trig);
   delay(10);
 }
 
 // Resetta il gioco
 void reset() {
   for (int i = 0; i < ACTNUM ; i++) {
-    trigger(actPins[i], LOW);
+    trigger(i, LOW);
   }
   triggered = false;
   for (int i = 0; i < SENNUM ; i++) {
@@ -263,8 +263,8 @@ void listenFromEth() {
     }
     triggered = 0;
     for (int i = 0; i < ACTNUM ; i++) {
-      //      trigger(actPins[i], Mb.R[ACTUATORS[i]]);
-      //      triggered = triggered || Mb.R[ACTUATORS[i]];
+      trigger(i, Mb.R[ACTUATORS[i]]);
+      triggered = triggered || Mb.R[ACTUATORS[i]];
     }
     for (int i = 0; i < DEVNUM ; i++) {
       digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
