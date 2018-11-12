@@ -1,25 +1,42 @@
-//Teensy 3.2 
+/* aa
+  Rosso: E +
+  Nero: E -
+  Verde: A -
+  Bianco: A +
+*/
+
+//Arduino Uno
 
 #include <SPI.h>
 #include <Ethernet.h>
 #include <Mudbus.h>
-#include <Wire.h>
-#include <MPR121.h>
+#include "HX711.h"
 
-#define SENNUM  8 //total amount of sensors
+#define CLK  3
+#define DOUT1  2
+#define DOUT2  4
+#define DOUT3  5
+
+#define calibration_factor1 -393400.0
+#define calibration_factor2 -380000.0
+#define calibration_factor3 -399200.0
+#define libToGr 453.592
+
+
+#define SENNUM  3 //total amount of sensors
 #define ACTNUM  0 //total amount of actuators
-#define DEVNUM  8 //total amount of internal devices
+#define DEVNUM  0 //total amount of internal devices
 
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE5}; //Dipende da ogni DEVICESitivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 0, 110};                           //This needs to be unique in your network - only one puzzle can have this IP
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0x08}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t ip[] = {10, 0, 0, 108};                       //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
 const int STATE = 0;
-const int SENSORS[SENNUM] = {1, 2, 3, 4, 5, 6, 7, 8};
+const int SENSORS[SENNUM] = {1, 2, 3};
 const int ACTUATORS[ACTNUM] = {};
-const int DEVICES[DEVNUM] = {51, 52, 53, 54, 55, 56, 57, 58};
+const int DEVICES[DEVNUM] = {};
 const int RESET = 100;
 const int ACTIVE = 124;
 
@@ -29,19 +46,26 @@ bool triggered = false; // has the control room triggered some actuator?
 bool gameActivated = ALWAYSACTIVE; // is the game active?
 
 //Used Pins
+const int sensPins[SENNUM] = {DOUT1, DOUT2, DOUT3}; // weigth sensors
+const int actPins[ACTNUM] = {};
+const int devPins[DEVNUM] = {} ;
 
-const int actPins[ACTNUM] = {}; // relay
-const int devPins[DEVNUM] = { 0, 1, 2, 3, 4, 5, 6, 7} ;
+int sensStatus[SENNUM] = {LOW};
 
-int sequence[DEVNUM] = {0, 1, 1, 1, 0, 0, 0, 0};      //the right sequence
-int yourSequence[DEVNUM] = {0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
+// specifico
+HX711 scale1(DOUT1, CLK);
+HX711 scale2(DOUT2, CLK);
+HX711 scale3(DOUT3, CLK);
 
-boolean sensStatus[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0};
+const float minWeigth = 75.0;
+const float maxWeigth = 95.0;
 
 //ModbusIP object
 Mudbus Mb;
 
+
 void setup() {
+  Serial.begin(9600);
   // reset for Ethernet Shield
   pinMode(9, OUTPUT);
   digitalWrite(9, LOW); // reset the WIZ820io
@@ -58,54 +82,22 @@ void setup() {
   puzzleSolved = false;
   Mb.R[ACTIVE] = gameActivated;
 
-  // specifico per questo gioco
-  // 0x5A is the MPR121 I2C address on the Bare Touch Board
-  if (!MPR121.begin(0x5A)) {
-    Serial.println("error setting up MPR121");
-    switch (MPR121.getError()) {
-      case NO_ERROR:
-        Serial.println("no error");
-        break;
-      case ADDRESS_UNKNOWN:
-        Serial.println("incorrect address");
-        break;
-      case READBACK_FAIL:
-        Serial.println("readback failure");
-        break;
-      case OVERCURRENT_FLAG:
-        Serial.println("overcurrent on REXT pin");
-        break;
-      case OUT_OF_RANGE:
-        Serial.println("electrode out of range");
-        break;
-      case NOT_INITED:
-        Serial.println("not initialised");
-        break;
-      default:
-        Serial.println("unknown error");
-        break;
-    }
-    while (1);
-  } else Serial.println("Tutto ok");
+  //Set Pin mode
+  scale1.set_scale();
+  scale1.tare(); //Reset the scale to 0
+  scale2.set_scale();
+  scale2.tare(); //Reset the scale to 0
+  scale3.set_scale();
+  scale3.tare(); //Reset the scale to 0
 
-  // this is the touch threshold - setting it low makes it more like a proximity trigger
-  // default value is 40 for touch
-  MPR121.setTouchThreshold(120);
+  long zero_factor1 = scale1.read_average(); //Get a baseline reading
+  long zero_factor2 = scale2.read_average(); //Get a baseline reading
+  long zero_factor3 = scale3.read_average(); //Get a baseline reading
 
-  // this is the release threshold - must ALWAYS be smaller than the touch threshold
-  // default value is 20 for touch
-  MPR121.setReleaseThreshold(80);
-
-  // initial data update
-  MPR121.updateTouchData();
-
-  for (int i = 0; i < DEVNUM; i++) {
-    pinMode(devPins[i], OUTPUT);
-    digitalWrite(devPins[i], LOW);
-  }
 }
 
-void loop() {
+void loop()
+{
   Mb.Run();
   listenFromEth();
   if (!triggered) {
@@ -116,39 +108,43 @@ void loop() {
 }
 
 void gameUpdate() {
-  MPR121.updateTouchData();
-  for (int i = 0; i < SENNUM; i++) {
-    if (MPR121.isNewTouch(i)) {
-      Mb.R[SENSORS[i]] = 1;
-      Mb.R[DEVICES[i]] = 1;
-      digitalWrite(devPins[i], HIGH);
-      yourSequence[i] = 1;
-    } else if (MPR121.isNewRelease(i)) {
-      Mb.R[SENSORS[i]] = 0;
-      Mb.R[DEVICES[i]] = 0;
-      digitalWrite(devPins[i], LOW);
-      yourSequence[i] = 0;
-    }
+  int w1 = 0;
+  int w2 = 0;
+  int w3 = 0;
+  int mis = 1;
+  scale1.set_scale(calibration_factor1); //Adjust to this calibration factor
+  scale2.set_scale(calibration_factor2); //Adjust to this calibration factor
+  scale3.set_scale(calibration_factor3); //Adjust to this calibration factor
+  for (int i = 0; i < mis; i++) {
+    w1 = w1 + scale1.get_units() * libToGr;
+    w2 = w2 + scale2.get_units() * libToGr;
+    w3 = w3 + scale3.get_units() * libToGr;
   }
-}
+  float weigth1 = w1 / mis; (weigth1 < 0) ? weigth1 = 0 : weigth1;
+  float weigth2 = w2 / mis; (weigth2 < 0) ? weigth2 = 0 : weigth2;
+  float weigth3 = w3 / mis; (weigth3 < 0) ? weigth3 = 0 : weigth3;
 
-//compare the two sequences
-boolean seq_cmp(int *a, int *b) {
-  for (int n = 0; n < DEVNUM; n++) if (a[n] != b[n]) return false;
-  return true;
+  //  Serial.print("Reading 1: "); Serial.print(weigth1, 1);
+  Mb.R[SENSORS[0]] = weigth1;
+  //  Serial.print(" - ");
+  //  Serial.print("Reading 2: "); Serial.print(weigth2, 1);
+  Mb.R[SENSORS[1]] = weigth2;
+  //  Serial.print(" - ");
+  //  Serial.print("Reading 3: "); Serial.print(weigth3, 1);
+  Mb.R[SENSORS[2]] = weigth3;
+  //  Serial.print(minWeigth); Serial.print(" < "); Serial.print(weigth1); Serial.print(" < "); Serial.println(maxWeigth);
+  if (((minWeigth < weigth1) && (weigth1 < maxWeigth)) && ((minWeigth < weigth2) && (weigth2 < maxWeigth)) && ((minWeigth < weigth3) && (weigth3 < maxWeigth))) puzzleSolved = true;
+  triggered = puzzleSolved;
 }
 
 void isPuzzleSolved() {
-  puzzleSolved = (seq_cmp(yourSequence, sequence)) ? true : false;
-  triggered = puzzleSolved;
   Mb.R[STATE] = puzzleSolved;
-  //trigger(actPins[0], puzzleSolved);
 }
 
 // Azione su ricezione comando "trigger"
 void trigger(int s, boolean trig) {
   Mb.R[ACTUATORS[s]] = trig;
-  digitalWrite(s, !trig);
+  digitalWrite(s, trig);
   delay(10);
 }
 
@@ -172,11 +168,6 @@ void reset() {
   if (!ALWAYSACTIVE) {
     gameActivated = false;
     Mb.R[ACTIVE] = gameActivated;
-  }
-
-  // reset specifico per il gioco
-  for (int i = 0; i < SENNUM ; i++) {
-    yourSequence[i] = LOW;
   }
 }
 

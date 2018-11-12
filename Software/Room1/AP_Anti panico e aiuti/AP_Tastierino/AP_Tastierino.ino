@@ -11,8 +11,8 @@
 
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0x99}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 0, 181};                       //This needs to be unique in your network - only one puzzle can have this IP
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0x95}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t ip[] = {10, 0, 0, 183};                       //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
 const int STATE = 0;

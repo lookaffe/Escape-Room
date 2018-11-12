@@ -5,33 +5,33 @@
 #include <Mudbus.h>
 #include <Bounce.h>
 
-#define SENNUM  2 //total amount of sensors
-#define ACTNUM  1 //total amount of actuators
+#define SENNUM  1 //total amount of sensors
+#define ACTNUM  0 //total amount of actuators
 #define DEVNUM  0 //total amount of internal devices
 
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0x99}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 0, 181};                       //This needs to be unique in your network - only one puzzle can have this IP
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0x91}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t ip[] = {10, 0, 0, 172};                       //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
 const int STATE = 0;
-const int SENSORS[SENNUM] = {1, 2};
-const int ACTUATORS[ACTNUM] = {101};
+const int SENSORS[SENNUM] = {1};
+const int ACTUATORS[ACTNUM] = {};
 const int DEVICES[DEVNUM] = {};
 const int RESET = 100;
 const int ACTIVE = 124;
 
 // Track the room game state
-bool panic = false;  // has the puzzle in the room been solved?
+bool help = false;  // has the puzzle in the room been solved?
 bool triggered = false; // has the control room triggered some actuator?
 bool gameActivated = ALWAYSACTIVE; // is the game active?
 
 //Used Pins
-const int sensPins[SENNUM] = {16, 22}; // switch, door
-const int actPins[ACTNUM] = {21}; // relay
+const int sensPins[SENNUM] = {16}; // switch, door
+const int actPins[ACTNUM] = {}; // relay
 
-int sensStatus[SENNUM] = {LOW, LOW};
+int sensStatus[SENNUM] = {LOW};
 
 
 Bounce button0 = Bounce(sensPins[0], 100); //Pin button
@@ -54,13 +54,11 @@ void setup()
   Serial.println(Ethernet.localIP());
 
   // Initial game state
-  panic = false;
+  help = false;
   Mb.R[ACTIVE] = gameActivated;
 
   //Set Pin mode
   pinMode(sensPins[0], INPUT);
-  pinMode(sensPins[1], INPUT);
-  pinMode(actPins[0], OUTPUT);
   digitalWrite(actPins[0], HIGH); //Open on LOW
 
 }
@@ -69,9 +67,10 @@ void loop()
 {
   Mb.Run();
   listenFromEth();
+  
   if (!triggered) {
     gameUpdate();
-    isPanic();
+    isHelp();
   }
   printRegister();
 }
@@ -79,20 +78,18 @@ void loop()
 void gameUpdate() {
   button0.update();
 
-  if (button0.risingEdge()) panic = true;
-  Mb.R[SENSORS[0]] = panic;
-  Mb.R[SENSORS[1]] = digitalRead(sensPins[1]);
+  if (button0.risingEdge()) help = true;
+  Mb.R[SENSORS[0]] = help;
 }
 
-void isPanic() {
-  trigger(actPins[0], panic);
-  Mb.R[STATE] = panic;
-  triggered = panic;
+void isHelp() {  
+  trigger(actPins[0], help);
+  Mb.R[STATE] = help;
+  //triggered = help;
 }
 
 // Azione su ricezione comando "trigger"
 void trigger(int s, boolean trig) {
-  Mb.R[ACTUATORS[s]] = trig;
   digitalWrite(s, trig);
   delay(10);
 }
@@ -107,8 +104,8 @@ void reset() {
     sensStatus[i] = LOW;
     Mb.R[SENSORS[i]] = sensStatus[i];
   }
-  panic = false;
-  Mb.R[STATE] = panic;
+  help = false;
+  Mb.R[STATE] = help;
   Mb.R[RESET] = LOW;
   if (!ALWAYSACTIVE) {
     gameActivated = false;
@@ -140,7 +137,7 @@ void printRegister() {
     Serial.print("DEVICES "); Serial.print(i); Serial.print(" (reg "); Serial.print(DEVICES[i]); Serial.print(") - val:  "); Serial.println(Mb.R[DEVICES[i]]);
   }
   Serial.print("ACTIVATION: "); Serial.println(Mb.R[ACTIVE]);
-  Serial.print("triggered"); Serial.println(triggered);
+  Serial.print("triggered: "); Serial.println(triggered);
   Serial.println();
 }
 

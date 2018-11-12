@@ -42,6 +42,8 @@ int yourSequence[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
     automatically deals with contact chatter or "bounce", and
     it makes detecting changes very simple.
 */
+
+//Bounce buttons[3] = {Bounce(sensPins[0], 100),Bounce(sensPins[0], 100),Bounce(sensPins[0], 100)};
 Bounce button0 = Bounce(sensPins[0], 100);
 Bounce button1 = Bounce(sensPins[1], 100);  // 10 = 10 ms debounce time
 Bounce button2 = Bounce(sensPins[2], 100);  // which is appropriate for

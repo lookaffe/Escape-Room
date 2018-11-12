@@ -3,7 +3,6 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <Mudbus.h>
-#include "CapacitiveSensor.h"
 
 #define SENNUM  24 //total amount of sensors
 #define ACTNUM  2 //total amount of actuators
