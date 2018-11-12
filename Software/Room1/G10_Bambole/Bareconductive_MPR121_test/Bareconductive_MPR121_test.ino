@@ -1,4 +1,3 @@
-
 #include <MPR121.h>
 #include <Wire.h>
 
