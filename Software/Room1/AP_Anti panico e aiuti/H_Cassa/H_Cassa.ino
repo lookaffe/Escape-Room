@@ -66,7 +66,6 @@ void loop()
 {
   Mb.Run();
   listenFromEth();
-
   if (!help) {
     gameUpdate();
     isHelp();

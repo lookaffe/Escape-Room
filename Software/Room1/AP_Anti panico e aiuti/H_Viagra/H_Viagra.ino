@@ -12,7 +12,7 @@
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0x94}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 0, 171};                       //This needs to be unique in your network - only one puzzle can have this IP
+uint8_t ip[] = {10, 0, 0, 171};                      //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
 const int STATE = 0;
@@ -30,9 +30,9 @@ bool gameActivated = ALWAYSACTIVE; // is the game active?
 //Used Pins
 const int sensPins[SENNUM] = {16}; // switch, door
 const int actPins[ACTNUM] = {}; // relay
+const int devPins[DEVNUM] ={};
 
 int sensStatus[SENNUM] = {LOW};
-
 
 Bounce button0 = Bounce(sensPins[0], 100); //Pin button
 //ModbusIP object
@@ -59,8 +59,6 @@ void setup()
 
   //Set Pin mode
   pinMode(sensPins[0], INPUT);
-  digitalWrite(actPins[0], HIGH); //Open on LOW
-
 }
 
 void loop()
@@ -68,7 +66,7 @@ void loop()
   Mb.Run();
   listenFromEth();
   
-  if (!triggered) {
+  if (!help) {
     gameUpdate();
     isHelp();
   }
@@ -83,27 +81,32 @@ void gameUpdate() {
 }
 
 void isHelp() {  
-  trigger(actPins[0], help);
   Mb.R[STATE] = help;
-  //triggered = help;
+  triggered = help;
 }
 
 // Azione su ricezione comando "trigger"
-void trigger(int s, boolean trig) {
-  digitalWrite(s, trig);
+void trigger(int actPin, boolean trig) {
+  Mb.R[ACTUATORS[actPin]] = trig;
+  triggered = trig;
+  digitalWrite(actPins[actPin], !trig);
   delay(10);
 }
 
 // Resetta il gioco
 void reset() {
   for (int i = 0; i < ACTNUM ; i++) {
-    trigger(actPins[i], LOW);
+    trigger(i, LOW);
   }
-  triggered = false;
   for (int i = 0; i < SENNUM ; i++) {
     sensStatus[i] = LOW;
     Mb.R[SENSORS[i]] = sensStatus[i];
   }
+  for (int i = 0; i < DEVNUM ; i++) {
+    digitalWrite(devPins[i], LOW);
+    Mb.R[DEVICES[i]] = LOW;
+  }
+  triggered = false;
   help = false;
   Mb.R[STATE] = help;
   Mb.R[RESET] = LOW;
@@ -118,11 +121,21 @@ void listenFromEth() {
   for (int i = 0; i < SENNUM ; i++) {
     sensStatus[i] = Mb.R[SENSORS[i]];
   }
-  triggered = false;
   for (int i = 0; i < ACTNUM ; i++) {
-    trigger(actPins[i], Mb.R[ACTUATORS[i]]);
+    trigger(i, Mb.R[ACTUATORS[i]]);
     triggered = triggered || Mb.R[ACTUATORS[i]];
   }
+  for (int i = 0; i < DEVNUM ; i++) {
+    digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
+  }
+  help = Mb.R[STATE];
+    if (Mb.R[STATE]) {
+      for (int i = 0; i < ACTNUM ; i++) {
+        trigger(i, Mb.R[STATE]);
+      }
+      triggered = Mb.R[STATE];
+    }
+  gameActivated = Mb.R[ACTIVE];
 }
 
 void printRegister() {
@@ -137,7 +150,7 @@ void printRegister() {
     Serial.print("DEVICES "); Serial.print(i); Serial.print(" (reg "); Serial.print(DEVICES[i]); Serial.print(") - val:  "); Serial.println(Mb.R[DEVICES[i]]);
   }
   Serial.print("ACTIVATION: "); Serial.println(Mb.R[ACTIVE]);
-  Serial.print("triggered: "); Serial.println(triggered);
+  Serial.print("trig: "); Serial.println(triggered);
   Serial.println();
 }
 
