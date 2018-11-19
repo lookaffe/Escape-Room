@@ -1,5 +1,5 @@
 //Teensy 3.2
-//abilitare Mb.R[STATE] ovunque
+
 
 #include <SPI.h>
 #include <Ethernet.h>
@@ -13,7 +13,7 @@
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE5}; //Dipende da ogni DEVICESitivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 0, 101};                           //This needs to be unique in your network - only one puzzle can have this IP
+uint8_t ip[] = {10, 0, 0, 112};                           //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
 const int STATE = 0;
@@ -42,7 +42,7 @@ volatile boolean printTime = true;
 volatile int cycle = 0;
 boolean firstTime = true;
 
-int players = 1;
+int players = 0;
 const int maxRPM = 50;
 const int minRPM = 20;
 
@@ -86,6 +86,7 @@ void setup() {
 
 void loop() {
   Mb.Run();
+  Serial.println(players);
   listenFromEth();
   if (!triggered) {
     gameUpdate();
@@ -259,7 +260,6 @@ void reset() {
     rpm[i] = 0;
 
   }
-  rpmTot = 0;
   printTime = true;
   cycle = 0;
   firstTime = true;
@@ -287,6 +287,7 @@ void listenFromEth() {
     }
     gameActivated = Mb.R[ACTIVE];
   }
+  players = Mb.R[51];
 }
 
 void printRegister() {

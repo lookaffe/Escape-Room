@@ -77,7 +77,6 @@ void gameUpdate() {
   button0.update();
 
   if (button0.fallingEdge()) puzzleSolved = true;
-  //if (button0.risingEdge()) puzzleSolved = false;
   Mb.R[SENSORS[0]] = puzzleSolved;
 }
 
@@ -86,18 +85,19 @@ void isPuzzleSolved() {
 }
 
 // Azione su ricezione comando "trigger"
-void trigger(int s, boolean trig) {
-  Mb.R[ACTUATORS[s]] = trig;
-  digitalWrite(s, trig);
+void trigger(int actPin, boolean trig) {
+  Mb.R[ACTUATORS[actPin]] = trig;
+  triggered = trig;
+  digitalWrite(actPins[actPin], !trig);
   delay(10);
 }
+
 
 // Resetta il gioco
 void reset() {
   for (int i = 0; i < ACTNUM ; i++) {
-    trigger(actPins[i], LOW);
+    trigger(i, LOW);
   }
-  triggered = false;
   for (int i = 0; i < SENNUM ; i++) {
     sensStatus[i] = LOW;
     Mb.R[SENSORS[i]] = sensStatus[i];
@@ -106,6 +106,7 @@ void reset() {
     digitalWrite(devPins[i], LOW);
     Mb.R[DEVICES[i]] = LOW;
   }
+  triggered = false;
   puzzleSolved = false;
   Mb.R[STATE] = puzzleSolved;
   Mb.R[RESET] = LOW;
@@ -121,16 +122,20 @@ void listenFromEth() {
     for (int i = 0; i < SENNUM ; i++) {
       sensStatus[i] = Mb.R[SENSORS[i]];
     }
-    triggered = 0;
     for (int i = 0; i < ACTNUM ; i++) {
-      trigger(actPins[i], Mb.R[ACTUATORS[i]]);
+      trigger(i, Mb.R[ACTUATORS[i]]);
       triggered = triggered || Mb.R[ACTUATORS[i]];
     }
     for (int i = 0; i < DEVNUM ; i++) {
       digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
     }
     puzzleSolved = Mb.R[STATE];
-    if (Mb.R[STATE]) triggered = Mb.R[STATE];
+    if (Mb.R[STATE]) {
+      for (int i = 0; i < ACTNUM ; i++) {
+        trigger(i, Mb.R[STATE]);
+      }
+      triggered = Mb.R[STATE];
+    }
     gameActivated = Mb.R[ACTIVE];
   }
 }

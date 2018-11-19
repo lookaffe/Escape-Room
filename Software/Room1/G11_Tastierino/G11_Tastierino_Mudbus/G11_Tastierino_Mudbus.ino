@@ -1,22 +1,23 @@
-//Teensy LC
+//Teensy 3.2
 
 #include <SPI.h>
 #include <Ethernet.h>
 #include <Mudbus.h>
+#include <Keypad.h>
 
 #define SENNUM  1 //total amount of sensors
-#define ACTNUM  1 //total amount of actuators
+#define ACTNUM  0 //total amount of actuators
 #define DEVNUM  0 //total amount of internal devices
 
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0xC2}; //Depends from each device, use T3_readmac.ino (Teensy) or generate it (Arduino)
-uint8_t ip[] = {10, 0, 0, 102};                       //This needs to be unique in your network - only one puzzle can have this IP
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE5}; //Dipende da ogni DEVICESitivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t ip[] = {10, 0, 0, 111};                           //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
 const int STATE = 0;
 const int SENSORS[SENNUM] = {1};
-const int ACTUATORS[ACTNUM] = {101};
+const int ACTUATORS[ACTNUM] = {};
 const int DEVICES[DEVNUM] = {};
 const int RESET = 100;
 const int ACTIVE = 124;
@@ -27,18 +28,32 @@ bool triggered = false; // has the control room triggered some actuator?
 bool gameActivated = ALWAYSACTIVE; // is the game active?
 
 //Used Pins
-const int sensPins[SENNUM] = {16}; // Reed
-const int actPins[ACTNUM] = {21}; // Relay
+//const int sensPins[SENNUM] = {1}; // tastierino
+const int actPins[ACTNUM] = {};
 const int devPins[DEVNUM] = {} ;
 
-int sensStatus[SENNUM] = {LOW};
+int sensStatus[SENNUM] = {0};
+
+//specifico per gioco
+const byte ROWS = 4; //four rows
+const byte COLS = 4; //three columns
+char keys[ROWS][COLS] = {
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+};
+byte colPins[COLS] = {4, 5, 6, 7}; //connect to the row pinouts of the keypad
+byte rowPins[ROWS] = {0, 1, 2, 3}; //connect to the column pinouts of the keypad
+long date = 0;
+long prevPressTime = 0;
+
+Keypad kpd = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
 //ModbusIP object
 Mudbus Mb;
 
-void setup()
-{
-  Serial.begin(9600);
+void setup() {
   // reset for Ethernet Shield
   pinMode(9, OUTPUT);
   digitalWrite(9, LOW); // reset the WIZ820io
@@ -55,14 +70,12 @@ void setup()
   puzzleSolved = false;
   Mb.R[ACTIVE] = gameActivated;
 
-  //Set Pin mode
-  pinMode(actPins[0], OUTPUT);
-  pinMode(sensPins[0], INPUT_PULLUP);
-  digitalWrite(actPins[0], HIGH); //Open on LOW
+  //
+  prevPressTime = millis();
+
 }
 
-void loop()
-{
+void loop() {
   Mb.Run();
   listenFromEth();
   if (!triggered) {
@@ -73,21 +86,46 @@ void loop()
 }
 
 void gameUpdate() {
-  sensStatus[0] = digitalRead(sensPins[0]); //reed value
-  Mb.R[SENSORS[0]] = !sensStatus[0];
-  puzzleSolved = !sensStatus[0];
+  int number = getNumber();
+  Mb.R[SENSORS[0]] = number;
+  (date == number) ? puzzleSolved = true : puzzleSolved = false;
+}
+
+int getNumber() {
+  prevPressTime = millis();
+  int num = 0;
+  char key = kpd.getKey();
+  while (millis() - prevPressTime < 2000) {
+    switch (key) {
+      case NO_KEY:
+        break;
+
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+        prevPressTime = millis();
+        Serial.print(key);
+        num = num * 10 + (key - '0');
+        break;
+
+      case '*': case '#': case 'A': case 'B': case 'C': case 'D':
+        num = 0;
+        Serial.println();
+        break;
+    }
+    key = kpd.getKey();
+  }
+  return num;
 }
 
 void isPuzzleSolved() {
-  trigger(0, puzzleSolved);
   Mb.R[STATE] = puzzleSolved;
 }
 
-// action on "trigger"
-void trigger(int s, boolean trig) {
-  Serial.print("trigger: ");Serial.println(s);
-  Mb.R[ACTUATORS[s]] = trig;
-  digitalWrite(actPins[s], !trig);
+// Azione su ricezione comando "trigger"
+void trigger(int actPin, boolean trig) {
+  Mb.R[ACTUATORS[actPin]] = trig;
+  triggered = trig;
+  digitalWrite(actPins[actPin], !trig);
   delay(10);
 }
 
@@ -136,6 +174,7 @@ void listenFromEth() {
     }
     gameActivated = Mb.R[ACTIVE];
   }
+  date = ((Mb.R[51] * 10000) + (Mb.R[52] * 100) + Mb.R[53] - 2000);
 }
 
 void printRegister() {
