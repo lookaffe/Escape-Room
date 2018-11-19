@@ -11,17 +11,43 @@ char keys[ROWS][COLS] = {
 };
 byte colPins[COLS] = {4, 5, 6, 7}; //connect to the row pinouts of the keypad
 byte rowPins[ROWS] = {0, 1, 2, 3}; //connect to the column pinouts of the keypad
+int date = 11281;
+long prevPressTime = 0;
 
-Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
+Keypad kpd = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
 void setup() {
   Serial.begin(9600);
+  prevPressTime = millis();
 }
 
 void loop() {
-  char key = keypad.getKey();
+  int vv = getNumber();
+  (date == vv) ? Serial.println("Yes") : Serial.println("No");
+}
 
-  if (key) {
-    Serial.println(key);
+int getNumber() {
+  prevPressTime = millis();
+  int num = 0;
+  char key = kpd.getKey();
+  while (millis() - prevPressTime < 3000) {
+    switch (key) {
+      case NO_KEY:
+        break;
+
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+        prevPressTime = millis();
+        Serial.print(key);
+        num = num * 10 + (key - '0');
+        break;
+
+      case '*':case '#':
+        num = 0;
+        Serial.println();
+        break;
+    }
+    key = kpd.getKey();
   }
+  return num;
 }
