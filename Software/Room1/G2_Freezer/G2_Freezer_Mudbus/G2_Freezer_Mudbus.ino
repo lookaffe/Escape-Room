@@ -85,7 +85,6 @@ void isPuzzleSolved() {
 
 // action on "trigger"
 void trigger(int s, boolean trig) {
-  Serial.print("trigger: ");Serial.println(s);
   Mb.R[ACTUATORS[s]] = trig;
   digitalWrite(actPins[s], !trig);
   delay(10);

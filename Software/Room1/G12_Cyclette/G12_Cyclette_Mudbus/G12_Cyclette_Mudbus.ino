@@ -3,6 +3,8 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
+//Teensy 3.2
+
 #include <Mudbus.h>
 #include <Bounce.h>
 
@@ -65,14 +67,6 @@ void setup() {
   // Initial game state
   puzzleSolved = false;
   Mb.R[ACTIVE] = gameActivated;
-
-  //Set light Pin mode
-  for (int i = 0; i < DEVNUM ; i++) {
-    pinMode(devPins[i], OUTPUT);
-    digitalWrite(devPins[i], LOW);
-  }
-
-  //players = Mb.R[ACTIVE];
 
   // Configure the pins for input mode with pullup resistors.
   for (int i = 0; i < SENNUM ; i++) {
@@ -218,7 +212,7 @@ void isPuzzleSolved() {
     } else puzzleSolved = 2;
   } else puzzleSolved = 1;
 
-  //Mb.R[STATE] = puzzleSolved;
+  Mb.R[STATE] = puzzleSolved;
   Serial.print(" - puzzleSolved: "); Serial.println(puzzleSolved);
 }
 

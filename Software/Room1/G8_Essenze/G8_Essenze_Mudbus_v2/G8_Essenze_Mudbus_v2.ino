@@ -36,7 +36,7 @@
 #define FUNGO 6 // pin della luce fungo
 
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xE1, 0x28}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 0, 109};                           //This needs to be unique in your network - only one puzzle can have this IP
+uint8_t ip[] = {10, 0, 0, 108};                           //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
 const int STATE = 0;
@@ -44,7 +44,7 @@ const int SENSORS[SENNUM] = {1, 2};
 const int ACTUATORS[ACTNUM] = {}; //nessun attuatore diretto
 const int DEVICES[DEVNUM] = {51, 52, 53, 54, 55, 56, 57, 58};
 const int RESET = 100;
-const int ACTIVE = 101;
+const int ACTIVE = 124;
 
 // Track the room game state
 int puzzleSolved = false;  // has the puzzle in the room been solved?
@@ -204,19 +204,18 @@ void isPuzzleSolved() {
   Mb.R[STATE] = puzzleSolved;
 }
 
-// Azione su ricezione comando "trigger"
+// action on "trigger"
 void trigger(int s, boolean trig) {
   Mb.R[ACTUATORS[s]] = trig;
-  digitalWrite(s, trig);
+  digitalWrite(actPins[s], !trig);
   delay(10);
 }
 
 // Resetta il gioco
 void reset() {
   for (int i = 0; i < ACTNUM ; i++) {
-    trigger(actPins[i], LOW);
+    trigger(i, LOW);
   }
-  triggered = false;
   for (int i = 0; i < SENNUM ; i++) {
     sensStatus[i] = LOW;
     Mb.R[SENSORS[i]] = sensStatus[i];
@@ -225,6 +224,7 @@ void reset() {
     digitalWrite(devPins[i], LOW);
     Mb.R[DEVICES[i]] = LOW;
   }
+  triggered = false;
   puzzleSolved = false;
   Mb.R[STATE] = puzzleSolved;
   Mb.R[RESET] = LOW;
@@ -243,16 +243,20 @@ void listenFromEth() {
     for (int i = 0; i < SENNUM ; i++) {
       sensStatus[i] = Mb.R[SENSORS[i]];
     }
-    triggered = 0;
     for (int i = 0; i < ACTNUM ; i++) {
-      trigger(actPins[i], Mb.R[ACTUATORS[i]]);
+      trigger(i, Mb.R[ACTUATORS[i]]);
       triggered = triggered || Mb.R[ACTUATORS[i]];
     }
     for (int i = 0; i < DEVNUM ; i++) {
       digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
     }
     puzzleSolved = Mb.R[STATE];
-    if (Mb.R[STATE]) triggered = Mb.R[STATE];
+    if (Mb.R[STATE]) {
+      for (int i = 0; i < ACTNUM ; i++) {
+        trigger(i, Mb.R[STATE]);
+      }
+      triggered = Mb.R[STATE];
+    }
     gameActivated = Mb.R[ACTIVE];
   }
 }
