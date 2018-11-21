@@ -148,8 +148,8 @@ void loop()
     gameUpdate();
     isPuzzleSolved();
   }
-  //printSteps();
-  printRegister();
+  printSteps();
+  //printRegister();
 }
 
 void gameUpdate() {
@@ -168,8 +168,10 @@ void gameUpdate() {
 }
 
 void fillTheGlasses() {
-  Serial.print("resetState :"); Serial.println(digitalRead(*resetButtonPin));
+  Serial.print("resetState-pre :"); Serial.print(resetState);
   resetState = !digitalRead(*resetButtonPin);
+  Serial.print(" - post :"); Serial.print(resetState);
+  Serial.print(" - real :"); Serial.println(digitalRead(*resetButtonPin));
   if (resetState)  emptiesGlasses();
   for (int i = 0; i < VALNUM; i++) {
     valvButtonState[i] = digitalRead(*valvButtonPins[i]);
@@ -194,12 +196,12 @@ void emptiesGlasses() {
     Mb.R[SENSORS[i + 1]] = yourWaterSteps[i];
   }
   for (servoPos = 0; servoPos <= 110; servoPos++) { // goes from 0 degrees to 180 degrees
-    //Serial.print("servoPos :"); Serial.println(servoPos); // in steps of 1 degree
+    Serial.print("servoPos :"); Serial.println(servoPos); // in steps of 1 degree
     glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
     delay(15);                       // waits 15ms for the servo to reach the position
   }
   for (servoPos = 110; servoPos >= 0; servoPos--) { // goes from 180 degrees to 0 degrees
-    //Serial.print("servoPos :"); Serial.println(servoPos);
+    Serial.print("servoPos :"); Serial.println(servoPos);
     glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
     delay(15);                       // waits 15ms for the servo to reach the position
   }
