@@ -23,7 +23,7 @@ const int RESET = 100;
 const int ACTIVE = 124;
 
 // Track the room game state
-bool help = false;  // has the puzzle in the room been solved?
+bool panic = false;  // has the puzzle in the room been solved?
 bool triggered = false; // has the control room triggered some actuator?
 bool gameActivated = ALWAYSACTIVE; // is the game active?
 
@@ -55,7 +55,7 @@ void setup()
   Serial.println(Ethernet.localIP());
 
   // Initial game state
-  help = false;
+  panic = false;
   Mb.R[ACTIVE] = gameActivated;
 
   //Set Pin mode
@@ -67,9 +67,9 @@ void loop()
   Mb.Run();
   listenFromEth();
   
-  if (!help) {
+  if (!panic) {
     gameUpdate();
-    isHelp();
+    ispanic();
   }
   printRegister();
 }
@@ -77,13 +77,13 @@ void loop()
 void gameUpdate() {
   button0.update();
 
-  if (button0.risingEdge()) help = true;
-  Mb.R[SENSORS[0]] = help;
+  if (button0.risingEdge()) panic = true;
+  Mb.R[SENSORS[0]] = panic;
 }
 
-void isHelp() {  
-  Mb.R[STATE] = help;
-  triggered = help;
+void ispanic() {  
+  Mb.R[STATE] = panic;
+  triggered = panic;
 }
 
 // Azione su ricezione comando "trigger"
@@ -108,8 +108,8 @@ void reset() {
     Mb.R[DEVICES[i]] = LOW;
   }
   triggered = false;
-  help = false;
-  Mb.R[STATE] = help;
+  panic = false;
+  Mb.R[STATE] = panic;
   Mb.R[RESET] = LOW;
   if (!ALWAYSACTIVE) {
     gameActivated = false;
@@ -119,24 +119,26 @@ void reset() {
 
 void listenFromEth() {
   if (Mb.R[RESET]) reset();
-  for (int i = 0; i < SENNUM ; i++) {
-    sensStatus[i] = Mb.R[SENSORS[i]];
-  }
-  for (int i = 0; i < ACTNUM ; i++) {
-    trigger(i, Mb.R[ACTUATORS[i]]);
-    triggered = triggered || Mb.R[ACTUATORS[i]];
-  }
-  for (int i = 0; i < DEVNUM ; i++) {
-    digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
-  }
-  help = Mb.R[STATE];
+  else {
+    triggered = Mb.R[STATE];
+    for (int i = 0; i < SENNUM ; i++) {
+      sensStatus[i] = Mb.R[SENSORS[i]];
+    }
+    for (int i = 0; i < ACTNUM ; i++) {
+      trigger(i, Mb.R[ACTUATORS[i]]);
+      triggered = triggered || Mb.R[ACTUATORS[i]];
+    }
+    for (int i = 0; i < DEVNUM ; i++) {
+      digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
+    }
+    panic = Mb.R[STATE];
     if (Mb.R[STATE]) {
       for (int i = 0; i < ACTNUM ; i++) {
         trigger(i, Mb.R[STATE]);
       }
-      triggered = Mb.R[STATE];
     }
-  gameActivated = Mb.R[ACTIVE];
+    gameActivated = Mb.R[ACTIVE];
+  }
 }
 
 void printRegister() {

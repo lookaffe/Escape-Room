@@ -125,6 +125,7 @@ void reset() {
 void listenFromEth() {
   if (Mb.R[RESET]) reset();
   else {
+    triggered = Mb.R[STATE];
     for (int i = 0; i < SENNUM ; i++) {
       sensStatus[i] = Mb.R[SENSORS[i]];
     }
@@ -140,7 +141,6 @@ void listenFromEth() {
       for (int i = 0; i < ACTNUM ; i++) {
         trigger(i, Mb.R[STATE]);
       }
-      triggered = Mb.R[STATE];
     }
     gameActivated = Mb.R[ACTIVE];
   }

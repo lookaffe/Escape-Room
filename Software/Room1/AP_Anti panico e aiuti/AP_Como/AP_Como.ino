@@ -30,7 +30,7 @@ bool gameActivated = ALWAYSACTIVE; // is the game active?
 //Used Pins
 const int sensPins[SENNUM] = {16}; // switch, door
 const int actPins[ACTNUM] = {21}; // relay
-const int devPins[DEVNUM] ={};
+const int devPins[DEVNUM] = {};
 
 int sensStatus[SENNUM] = {LOW};
 
@@ -122,24 +122,26 @@ void reset() {
 
 void listenFromEth() {
   if (Mb.R[RESET]) reset();
-  for (int i = 0; i < SENNUM ; i++) {
-    sensStatus[i] = Mb.R[SENSORS[i]];
-  }
-  for (int i = 0; i < ACTNUM ; i++) {
-    trigger(i, Mb.R[ACTUATORS[i]]);
-    triggered = triggered || Mb.R[ACTUATORS[i]];
-  }
-  for (int i = 0; i < DEVNUM ; i++) {
-    digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
-  }
-  panic = Mb.R[STATE];
+  else {
+    triggered = Mb.R[STATE];
+    for (int i = 0; i < SENNUM ; i++) {
+      sensStatus[i] = Mb.R[SENSORS[i]];
+    }
+    for (int i = 0; i < ACTNUM ; i++) {
+      trigger(i, Mb.R[ACTUATORS[i]]);
+      triggered = triggered || Mb.R[ACTUATORS[i]];
+    }
+    for (int i = 0; i < DEVNUM ; i++) {
+      digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
+    }
+    panic = Mb.R[STATE];
     if (Mb.R[STATE]) {
       for (int i = 0; i < ACTNUM ; i++) {
         trigger(i, Mb.R[STATE]);
       }
-      triggered = Mb.R[STATE];
     }
-  gameActivated = Mb.R[ACTIVE];
+    gameActivated = Mb.R[ACTIVE];
+  }
 }
 
 void printRegister() {
