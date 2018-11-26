@@ -227,6 +227,7 @@ void reset() {
 void listenFromEth() {
   if (Mb.R[RESET]) reset();
   else {
+    triggered = Mb.R[STATE];
     for (int i = 0; i < SENNUM ; i++) {
       sensStatus[i] = Mb.R[SENSORS[i]];
     }
@@ -235,14 +236,13 @@ void listenFromEth() {
       triggered = triggered || Mb.R[ACTUATORS[i]];
     }
     for (int i = 0; i < DEVNUM ; i++) {
-      if (Mb.R[DEVICES[i]]) buzzer(1000, 500);
+      digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
     }
     puzzleSolved = Mb.R[STATE];
     if (Mb.R[STATE]) {
       for (int i = 0; i < ACTNUM ; i++) {
         trigger(i, Mb.R[STATE]);
       }
-      triggered = Mb.R[STATE];
     }
     gameActivated = Mb.R[ACTIVE];
   }
