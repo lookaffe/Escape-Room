@@ -14,7 +14,7 @@
 
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE5}; //Dipende da ogni DEVICESitivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xE1, 0x2B}; //Dipende da ogni DEVICESitivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 0, 112};                           //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
@@ -262,6 +262,7 @@ void reset() {
 void listenFromEth() {
   if (Mb.R[RESET]) reset();
   else {
+    triggered = Mb.R[STATE];
     for (int i = 0; i < SENNUM ; i++) {
       sensStatus[i] = Mb.R[SENSORS[i]];
     }
@@ -272,12 +273,11 @@ void listenFromEth() {
     for (int i = 0; i < DEVNUM ; i++) {
       digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
     }
-    //puzzleSolved = Mb.R[STATE];
+    puzzleSolved = Mb.R[STATE];
     if (Mb.R[STATE]) {
       for (int i = 0; i < ACTNUM ; i++) {
         trigger(i, Mb.R[STATE]);
       }
-      triggered = Mb.R[STATE];
     }
     gameActivated = Mb.R[ACTIVE];
   }
