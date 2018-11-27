@@ -1,4 +1,4 @@
-//Teensy 3.2
+//Teensy LC
 
 #include <SPI.h>
 #include <Ethernet.h>
@@ -11,7 +11,7 @@
 
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE5}; //Dipende da ogni DEVICESitivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0x92}; //Dipende da ogni DEVICESitivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 0, 111};                           //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
@@ -95,7 +95,7 @@ int getNumber() {
   prevPressTime = millis();
   int num = 0;
   char key = kpd.getKey();
-  while (millis() - prevPressTime < 2000) {
+  while (millis() - prevPressTime < 1500) {
     switch (key) {
       case NO_KEY:
         break;
