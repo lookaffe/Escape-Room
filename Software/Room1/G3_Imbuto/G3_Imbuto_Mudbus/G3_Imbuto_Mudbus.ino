@@ -66,7 +66,7 @@ void loop()
 {
   Mb.Run();
   listenFromEth();
-  if (!triggered) {
+  if (1) {
     gameUpdate();
     isPuzzleSolved();
   }
@@ -77,6 +77,7 @@ void gameUpdate() {
   button0.update();
 
   if (button0.fallingEdge()) puzzleSolved = true;
+  if (button0.risingEdge()) puzzleSolved = false;
   Mb.R[SENSORS[0]] = puzzleSolved;
 }
 
