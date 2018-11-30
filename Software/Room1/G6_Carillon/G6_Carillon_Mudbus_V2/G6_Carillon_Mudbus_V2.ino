@@ -5,7 +5,7 @@
 #include <Mudbus.h>
 #include <Bounce.h>
 
-#define SENNUM  9 //total amount of sensors
+#define SENNUM  8 //total amount of sensors
 #define ACTNUM  0 //total amount of actuators
 #define DEVNUM  1 //total amount of internal devices
 
@@ -16,7 +16,7 @@ uint8_t ip[] = {10, 0, 0, 106};                           //This needs to be uni
 
 //Modbus Registers Offsets (0-9999)
 const int STATE = 0;
-const int SENSORS[SENNUM] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+const int SENSORS[SENNUM] = {1, 2, 3, 4, 5, 6, 7, 8};
 const int ACTUATORS[ACTNUM] = {};
 const int DEVICES[DEVNUM] = {51};
 const int RESET = 100;
@@ -28,14 +28,14 @@ bool triggered = false; // has the control room triggered some actuator?
 bool gameActivated = ALWAYSACTIVE; // is the game active?
 
 //Used Pins
-const int sensPins[SENNUM] = {23, 21, 19, 17, 15, 22, 20, 18, 16}; // switch
+const int sensPins[SENNUM] = {23, 21, 19, 17, 15, 22, 20, 18}; // switch
 const int actPins[ACTNUM] = {};
 const int devPins[DEVNUM] = {4} ; //buzzer
 
-int sequence[SENNUM] = {0, 1, 1, 0, 0, 0 , 0, 0, 1};      //the right sequence
-int yourSequence[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
+int sequence[SENNUM] = {0, 1, 1, 0, 0, 1, 0, 1};      //the right sequence
+int yourSequence[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
 
-boolean sensStatus[SENNUM] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
+boolean sensStatus[SENNUM] = {1, 1, 1, 1, 1, 1, 1, 1};
 
 boolean pressed = false;
 
@@ -54,7 +54,7 @@ Bounce button4 = Bounce(sensPins[4], 10);
 Bounce button5 = Bounce(sensPins[5], 10);  // if a button is too "sensitive"
 Bounce button6 = Bounce(sensPins[6], 10);  // to rapid touch, you can
 Bounce button7 = Bounce(sensPins[7], 10);  // increase this time.
-Bounce button8 = Bounce(sensPins[8], 10);
+//Bounce button8 = Bounce(sensPins[8], 10);
 
 //ModbusIP object
 Mudbus Mb;
@@ -77,15 +77,9 @@ void setup() {
   Mb.R[ACTIVE] = gameActivated;
 
   // Configure the pins for input mode with pullup resistors.
-  pinMode(sensPins[0], INPUT);
-  pinMode(sensPins[1], INPUT);
-  pinMode(sensPins[2], INPUT);
-  pinMode(sensPins[3], INPUT);
-  pinMode(sensPins[4], INPUT);
-  pinMode(sensPins[5], INPUT);
-  pinMode(sensPins[6], INPUT);
-  pinMode(sensPins[7], INPUT);
-  pinMode(sensPins[8], INPUT);
+  for (uint8_t i = 0; i < SENNUM; i++) {
+    pinMode(sensPins[i], INPUT);
+  }
 
   pinMode(devPins[0], OUTPUT);
   digitalWrite(devPins[0], LOW);
@@ -116,7 +110,7 @@ void gameUpdate() {
   button5.update();
   button6.update();
   button7.update();
-  button8.update();
+  //button8.update();
 
   // Check each button for "falling" edge
   if (button0.fallingEdge()) {
@@ -143,9 +137,9 @@ void gameUpdate() {
   if (button7.fallingEdge()) {
     fallingEdgeAction(7);
   }
-  if (button8.fallingEdge()) {
-    fallingEdgeAction(8);
-  }
+//  if (button8.fallingEdge()) {
+//    fallingEdgeAction(8);
+//  }
 }
 
 void fallingEdgeAction(int b) {
