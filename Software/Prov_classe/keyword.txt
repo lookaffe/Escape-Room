@@ -1,0 +1,7 @@
+EscapeRoom	KEYWORD1
+gameUpdate	KEYWORD2
+isPuzzleSolved	KEYWORD2
+triggerAct	KEYWORD2
+resetAll	KEYWORD2
+listenFromEth	KEYWORD2
+printRegister	KEYWORD2
