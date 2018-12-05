@@ -1,8 +1,6 @@
 //Teensy 3.5
 
-#include <SPI.h>
-#include <Ethernet.h>
-#include <Mudbus.h>
+#include "EscapeRoom.h"
 #include <Bounce.h>
 
 #define SENNUM  10 //total amount of sensors
@@ -11,7 +9,7 @@
 
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE5}; //Dipende da ogni DEVICESitivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE5}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 0, 101};                           //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
@@ -53,9 +51,6 @@ Bounce button6 = Bounce(sensPins[6], 100);  // to rapid touch, you can
 Bounce button7 = Bounce(sensPins[7], 100);  // increase this time.
 Bounce button8 = Bounce(sensPins[8], 100);
 Bounce button9 = Bounce(sensPins[9], 100);
-
-//ModbusIP object
-Mudbus Mb;
 
 void setup() {
   // reset for Ethernet Shield

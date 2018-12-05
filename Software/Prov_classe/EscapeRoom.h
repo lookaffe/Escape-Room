@@ -17,9 +17,9 @@
 #include <Mudbus.h>
 #include <vector>
 
-#define STATE 0
-#define RESET 100
-#define ACTIVE 124
+#define _STATE 0
+#define _RESET 100
+#define _ACTIVE 124
 
 class EscapeRoom
 {
@@ -34,7 +34,7 @@ class EscapeRoom
   private:
     uint8_t _senNum, _actNum, _devNum;
     bool _puzzleSolved = false, _triggered = false, _gameActivated;
-    std::vector<uint8_t> SENSORS, ACTUATORS, DEVICES;
+    std::vector<uint8_t> _SENSORS, _ACTUATORS, _DEVICES;
 };
 
 #endif
