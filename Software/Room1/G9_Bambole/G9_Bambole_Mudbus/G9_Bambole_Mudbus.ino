@@ -1,4 +1,4 @@
-//Teensy 3.2 
+//Teensy 3.2
 
 #include <SPI.h>
 #include <Ethernet.h>
@@ -30,10 +30,10 @@ bool gameActivated = ALWAYSACTIVE; // is the game active?
 
 //Used Pins
 
-const int actPins[ACTNUM] = {}; // relay
+const int actPins[ACTNUM] = {}; // mpr121
 const int devPins[DEVNUM] = { 0, 1, 2, 3, 4, 5, 6, 7} ;
 
-int sequence[DEVNUM] = {0, 1, 1, 1, 0, 0, 0, 0};      //the right sequence
+int sequence[DEVNUM] = {1, 0, 0, 1, 1, 1, 0, 0};      //the right sequence
 int yourSequence[DEVNUM] = {0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
 
 boolean sensStatus[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -112,7 +112,7 @@ void loop() {
     gameUpdate();
     isPuzzleSolved();
   }
-  printRegister();
+  //printRegister();
 }
 
 void gameUpdate() {
@@ -142,13 +142,20 @@ void isPuzzleSolved() {
   puzzleSolved = (seq_cmp(yourSequence, sequence)) ? true : false;
   triggered = puzzleSolved;
   Mb.R[STATE] = puzzleSolved;
+  if (puzzleSolved) {
+    mydelay(3500);
+    for (int i = 0; i < SENNUM; i++) {
+      Mb.R[SENSORS[i]] = 0;
+      Mb.R[DEVICES[i]] = 0;
+    }
+  }
 }
 
 // Azione su ricezione comando "trigger"
 void trigger(int s, boolean trig) {
   Mb.R[ACTUATORS[s]] = trig;
   digitalWrite(actPins[s], !trig);
-  delay(10);
+  mydelay(10);
 }
 
 // Resetta il gioco
@@ -218,3 +225,9 @@ void printRegister() {
   Serial.println();
 }
 
+void mydelay(float d) {
+  unsigned long t = millis();
+  while (millis() < t + d) {
+    Mb.Run();
+    }
+}

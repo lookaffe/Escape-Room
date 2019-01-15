@@ -78,17 +78,27 @@ void loop()
 }
 
 void gameUpdate() {
-  for (int i = 0; i < SENNUM ; i++) {
-    sensStatus[i] = analogRead(sensPins[i]);
-    Mb.R[SENSORS[i]] = sensStatus[i];
+  int count = 0;
+  int iter = 2000;  
+  for (int y = 0; y < iter; y++) {
+    bool puSo=0;
+    for (int i = 0; i < SENNUM ; i++) {
+      sensStatus[i] = analogRead(sensPins[i]);
+      Mb.R[SENSORS[i]] = sensStatus[i];
+    }
+    for (int i = 0; i < SENNUM ; i++) {
+      int pS = (sensStatus[i] < 100) ? 1 : 0;
+      puSo = puSo || pS;
+    }
+    Serial.print("puSo ");Serial.println(puSo);
+    count = count + puSo;
+    Serial.print("count ");Serial.println(count);
   }
+  if(count == iter) puzzleSolved = true;
 }
 
 void isPuzzleSolved() {
-  for (int i = 0; i < SENNUM ; i++) {
-    bool pS = (sensStatus[i] < 100) ? true : false;
-    puzzleSolved = puzzleSolved || pS;
-  }
+
   Mb.R[STATE] = puzzleSolved;
 }
 

@@ -1,7 +1,7 @@
 //Teensy LC
 
-const int waterPin = 23; //Pin Reed
-const int relayPin = 21;
+const int waterPin = 21; //Pin Reed
+const int relayPin = 0;
 boolean puzzleSolved = false;
 void setup()
 {
@@ -12,7 +12,7 @@ void setup()
 }
 void loop()
 {
- Serial.println(digitalRead(waterPin))  ;
+ Serial.println(analogRead(waterPin))  ;
 }
 
 

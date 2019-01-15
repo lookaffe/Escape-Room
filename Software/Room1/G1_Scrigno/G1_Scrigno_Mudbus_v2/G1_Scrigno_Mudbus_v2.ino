@@ -34,7 +34,7 @@ const int devPins[DEVNUM] = {14, 15, 16, 17, 18, 19, 20, 21, 22, 23} ;
 
 int sensStatus[SENNUM] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-int sequence[SENNUM] = {0, 1, 1, 0, 0, 0 , 1, 1, 1, 0};      //the right sequence
+int sequence[SENNUM] = {0, 1, 1, 0, 1, 0 , 1, 1, 0, 0};      //the right sequence
 int yourSequence[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
 
 /*

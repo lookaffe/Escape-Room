@@ -5,9 +5,13 @@
 #include <Mudbus.h>
 #include <Keypad.h>
 
+#define CPU_RESTART_ADDR (uint32_t *)0xE000ED0C
+#define CPU_RESTART_VAL 0x5FA0004
+#define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL)
+
 #define SENNUM  1 //total amount of sensors
 #define ACTNUM  0 //total amount of actuators
-#define DEVNUM  0 //total amount of internal devices
+#define DEVNUM  1 //total amount of internal devices
 
 #define ALWAYSACTIVE 1 //1 if the game is always active
 
@@ -18,12 +22,13 @@ uint8_t ip[] = {10, 0, 0, 111};                           //This needs to be uni
 const int STATE = 0;
 const int SENSORS[SENNUM] = {1};
 const int ACTUATORS[ACTNUM] = {};
-const int DEVICES[DEVNUM] = {};
+const int DEVICES[DEVNUM] = {54}; //il 51 è usato
+const int RESTART = 99;
 const int RESET = 100;
 const int ACTIVE = 124;
 
 // Track the room game state
-bool puzzleSolved = false;  // has the puzzle in the room been solved?
+int puzzleSolved = false;  // has the puzzle in the room been solved?
 bool triggered = false; // has the control room triggered some actuator?
 bool gameActivated = ALWAYSACTIVE; // is the game active?
 
@@ -67,9 +72,9 @@ void setup() {
   Serial.println(Ethernet.localIP());
 
   // Initial game state
-  puzzleSolved = false;
+  puzzleSolved = 0;
   Mb.R[ACTIVE] = gameActivated;
-
+  Mb.R[DEVICES[0]] = 0;
   //
   prevPressTime = millis();
 
@@ -82,13 +87,17 @@ void loop() {
     gameUpdate();
     isPuzzleSolved();
   }
+  Serial.print("Date :"); Serial.println(date);
   printRegister();
 }
 
 void gameUpdate() {
   int number = getNumber();
-  Mb.R[SENSORS[0]] = number;
-  (date == number) ? puzzleSolved = true : puzzleSolved = false;
+  if (number != 0) {
+    if (date == number) {
+      puzzleSolved = 1;
+    } else Mb.R[DEVICES[0]] = !Mb.R[DEVICES[0]];
+  }
 }
 
 int getNumber() {
@@ -98,6 +107,7 @@ int getNumber() {
   while (millis() - prevPressTime < 1500) {
     switch (key) {
       case NO_KEY:
+        //Mb.Run();
         break;
 
       case '0': case '1': case '2': case '3': case '4':
@@ -105,9 +115,11 @@ int getNumber() {
         prevPressTime = millis();
         Serial.print(key);
         num = num * 10 + (key - '0');
+        Mb.R[SENSORS[0]] = num;
         break;
 
       case '*': case '#': case 'A': case 'B': case 'C': case 'D':
+        Mb.R[SENSORS[0]] = num;
         num = 0;
         Serial.println();
         break;
@@ -175,6 +187,7 @@ void listenFromEth() {
     gameActivated = Mb.R[ACTIVE];
   }
   date = ((Mb.R[51] * 10000) + (Mb.R[52] * 100) + Mb.R[53] - 2000);
+  if(Mb.R[RESTART]) CPU_RESTART;
 }
 
 void printRegister() {

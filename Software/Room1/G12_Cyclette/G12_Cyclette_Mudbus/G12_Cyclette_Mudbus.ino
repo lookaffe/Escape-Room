@@ -45,8 +45,8 @@ volatile int cycle = 0;
 boolean firstTime = true;
 
 int players = 0;
-const int maxRPM = 50;
-const int minRPM = 20;
+const int maxRPM = 110;
+const int minRPM = 90;
 
 //ModbusIP object
 Mudbus Mb;
@@ -71,7 +71,7 @@ void setup() {
   // Configure the pins for input mode with pullup resistors.
   for (int i = 0; i < SENNUM ; i++) {
     for (int i = 0; i < SENNUM; i++) {
-      pinMode(sensPins[i], INPUT_PULLUP); //Sets hallsensor as input
+      pinMode(sensPins[i], INPUT); //Sets hallsensor as input
       passedtime[i] = millis();
       prevRotationTime[i] = millis();
     }
@@ -80,19 +80,20 @@ void setup() {
 
 void loop() {
   Mb.Run();
-  Serial.println(players);
+  //Serial.println(players);
   listenFromEth();
-  if (!triggered) {
+  if (triggered != 1) {
     gameUpdate();
     isPuzzleSolved();
   }
-  //printRegister();
+  // bprintRegister();
 }
 
 void gameUpdate() {
   if (firstTime) first();
   for (int i = 0; i < SENNUM; i++) {
     detachInterrupt(i);
+    (millis() - prevRotationTime[i] > 3000) ? rotationTime[i] = 0 : rotationTime[i];
     switch (i) {
       case 0:
         attachInterrupt(digitalPinToInterrupt(0), isr_0, RISING);
@@ -113,6 +114,9 @@ void gameUpdate() {
         attachInterrupt(digitalPinToInterrupt(5), isr_5, RISING);
         break;
     }
+    if (rotationTime[i]) rpm[i] = (int)60000 / rotationTime[i];
+    else rpm[i] = 0;
+    Mb.R[SENSORS[i]] = rpm[i];
   }
 
 
@@ -121,9 +125,7 @@ void gameUpdate() {
       Serial.print("Cyc: ");
       Serial.print(y); //Print out result to monitor
       Serial.print(" - RPM=");
-      rpm[y] = (int)60000 / rotationTime[y];
       Serial.print(rpm[y]); //Print out result to monitor
-      Mb.R[SENSORS[y]] = rpm[y];
       Serial.print(" - Prev Rot Time=");
       Serial.print(prevRotationTime[y]); //Print out result to monitor
       Serial.print(" - Millis=");
@@ -205,15 +207,16 @@ void isPuzzleSolved() {
     rpmTot += rpm[p];
   }
   int rpmMed = (int) rpmTot / players;
-  Serial.print("rpmMed: "); Serial.print(rpmMed);   Serial.print(" - ");
+  Mb.R[7] = rpmMed;
+  //Serial.print("rpmMed: "); Serial.print(rpmMed);   Serial.print(" - ");
   if (rpmMed < maxRPM) {
-    if (rpmMed < minRPM) {
+    //if (rpmMed < minRPM) {
       puzzleSolved = 0;
-    } else puzzleSolved = 2;
+    //} else puzzleSolved = 2;
   } else puzzleSolved = 1;
 
   Mb.R[STATE] = puzzleSolved;
-  Serial.print(" - puzzleSolved: "); Serial.println(puzzleSolved);
+  //Serial.print(" - puzzleSolved: "); Serial.println(puzzleSolved);
 }
 
 // Azione su ricezione comando "trigger"

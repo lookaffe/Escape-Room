@@ -67,9 +67,9 @@ constexpr uint8_t RST_PIN = 16;          // Configurable, see typical pin layout
 
 MFRC522 mfrc522[SENNUM];  // Create mfrc522b instances
 
-const int nOfTAG = 16; //numero di TAG abilitati
+const int nOfTAG = 8; //numero di TAG abilitati
 String currentTAG[SENNUM]; //Valori del TAG letto
-String correctTAG[nOfTAG] = {"0221125142218", "0237112144218", "015741148218", "077161136218", "01836014245", "01357614245", "01674912245", "02154412245", "01349135218", "0141176138218", "07792135218", "077119144218", "01996914245", "01197914245", "02474112245", "02317614245"}; //i primi nOfTAG/2 sono del TAG A, gli altri del TAG B
+String correctTAG[nOfTAG] = {"01836014245", "01357614245", "01674912245", "02154412245", "01349135218", "0141176138218", "07792135218", "077119144218"}; //i primi nOfTAG/2 sono del TAG A, gli altri del TAG B
 
 
 
@@ -135,15 +135,18 @@ void flashing() {
   uint8_t h = 0;
   int fast = 800;
   while (h < 36) {
+    
     for (uint8_t b = 0; b < DEVNUM / 2; b++) {
       digitalWrite(devPins[b], HIGH); digitalWrite(devPins[b + DEVNUM / 2], HIGH);
-      delay(fast / h + 1);
+      Mb.R[DEVICES[b]] = HIGH;
+      mydelay(fast / h + 1);
       digitalWrite(devPins[b], LOW); digitalWrite(devPins[b + DEVNUM / 2], LOW);
+       Mb.R[DEVICES[b]] = LOW;
     }
+    Mb.R[ACTIVE] = 
     h++;
-    Mb.Run();
   }
-  delay(1000);
+  mydelay(1000);
   digitalWrite(devPins[LIMONE], HIGH); digitalWrite(devPins[FUNGO], HIGH);
   Mb.R[DEVICES[LIMONE]] = HIGH; Mb.R[DEVICES[FUNGO]] = HIGH;
 }
@@ -274,4 +277,11 @@ void printRegister() {
   }
   Serial.print("ACTIVATION: "); Serial.println(Mb.R[ACTIVE]);
   Serial.println();
+}
+
+void mydelay(float d) {
+  unsigned long t = millis();
+  while (millis() < t + d) {
+    Mb.Run();
+    }
 }

@@ -21,11 +21,14 @@
 #define ACTNUM  0 //total amount of actuators
 #define DEVNUM 9 //total amount of internal devices
 
-#define ALWAYSACTIVE 1 //1 if the game is always active
+#define ALWAYSACTIVE 0 //1 if the game is always active
 
 // per questo gioco------
 #define VALNUM 6
 #define HAMNUM 6
+#define FIRSTSTART 0
+#define FILL 1
+#define PLAY 2
 // ----------------------
 
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x04, 0xE9, 0xE4}; //Dipende da ogni disposnoteivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
@@ -52,22 +55,21 @@ const int devPins[DEVNUM] = {21, 0, 2, 4, 6, 8, 7, 33, 23} ; // , 21 playLight, 
 int sensStatus[SENNUM] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 // per questo gioco------
-const int *playLightPin = &devPins[0];
-const int *playButtonPin = &sensPins[0];
+const int playLightPin = 21;
+const int playButtonPin = 19;
 boolean playState = false;
 
-const int *resetLightPin = &devPins[7];
-const int *resetButtonPin = &sensPins[7];
-boolean resetState = false;
+const int resetLightPin = 33;
+const int resetButtonPin = 35;
+int resetState = false;
 
-const int *valvPins[VALNUM] = {&devPins[1], &devPins[2], &devPins[3], &devPins[4], &devPins[5], &devPins[6]};
-const int *valvButtonPins[VALNUM] = {&sensPins[1], &sensPins[2], &sensPins[3], &sensPins[4], &sensPins[5], &sensPins[6]};
+const int valvPins[VALNUM] = {0, 2, 4, 6, 8, 7};
+const int valvButtonPins[VALNUM] = {17, 15, 22, 20, 18, 16};
+const long fluxTime[VALNUM] = {3250, 3350, 3400, 3700, 3250, 3350}; // 2900 per 0,5 cl
 int valvButtonState[VALNUM] = {0, 0, 0, 0, 0, 0};
 
-const int *hammButtonPins[HAMNUM] = {&sensPins[8], &sensPins[9], &sensPins[10], &sensPins[11], &sensPins[12], &sensPins[13]};
+const int hammButtonPins[HAMNUM] = { 25, 24, 26, 28, 30, 32};
 int hammButtonState[HAMNUM] = {0, 0, 0, 0, 0, 0};
-
-const long fluxTime = 200; // 2900 per 0,5 cl
 
 int waterSteps[VALNUM] = {8, 6, 5, 10, 3, 1};  //quantità d'acqua per le note giuste Verde, Blu, Rosa, Rosso, Giallo, Nero
 int yourWaterSteps[VALNUM] = {0, 0, 0, 0, 0, 0};
@@ -77,7 +79,9 @@ boolean waterSolved = false;
 const int noteNum = 14;
 int note = 0; // number of iteration
 
-int hammSequence[noteNum] = {0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2, 1, 1, 0};      //the right sequence
+int stato = FIRSTSTART;
+
+int hammSequence[noteNum] = {3, 3, 4, 4, 5, 5, 4, 2, 2, 1, 1, 0, 0, 3};      //the right sequence
 int yourHammSequence[noteNum] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
 int lastHamm[noteNum] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; //only for debugging
 
@@ -100,6 +104,8 @@ Bounce hammButton5 = Bounce(32, 100);
 Mudbus Mb;
 
 void setup() {
+  pinMode(4, OUTPUT);
+  digitalWrite(4, LOW);
   Serial.begin(9600);
   // reset for Ethernet Shield
   pinMode(9, OUTPUT);
@@ -119,25 +125,24 @@ void setup() {
 
   //Set Pin mode
   for (int i = 0; i < VALNUM; i++) {
-    pinMode(*valvPins[i], OUTPUT);
-    pinMode(*valvButtonPins[i], INPUT);
-    digitalWrite(*valvPins[i], LOW);  // LOW se uso SSRelay
+    pinMode(valvPins[i], OUTPUT);
+    pinMode(valvButtonPins[i], INPUT);
+    digitalWrite(valvPins[i], LOW);  // LOW se uso SSRelay
   }
   for (int i = 0; i < HAMNUM; i++) {
-    pinMode(*hammButtonPins[i], INPUT);
+    pinMode(hammButtonPins[i], INPUT);
   }
-  pinMode(*playButtonPin, INPUT);
-  pinMode(*playLightPin, OUTPUT);
-  digitalWrite(*playLightPin, LOW);
+  pinMode(playButtonPin, INPUT);
+  pinMode(playLightPin, OUTPUT);
+  digitalWrite(playLightPin, LOW);
 
-  pinMode(*resetButtonPin, INPUT);
-  pinMode(*resetLightPin, OUTPUT);
-  digitalWrite(*resetLightPin, HIGH);
+  pinMode(resetButtonPin, INPUT);
+  pinMode(resetLightPin, OUTPUT);
+  digitalWrite(resetLightPin, LOW);
 
   interrupt_time = millis();
 
   glassesServo.attach(23);
-  reset();
 }
 
 void loop()
@@ -153,58 +158,88 @@ void loop()
 }
 
 void gameUpdate() {
-  if (!waterSolved) {
-    fillTheGlasses();
-    waterSolved = seq_cmp(yourWaterSteps, waterSteps, VALNUM);
-    digitalWrite(*resetLightPin, !waterSolved);
-    Mb.R[DEVICES[7]] = !waterSolved;
-    digitalWrite(*playLightPin, waterSolved);
-    Mb.R[DEVICES[0]] = waterSolved;
-    if (waterSolved) Mb.R[SENSORS[0]] = waterSolved;
-  }
-  else {
-    playInstrument();
+  switch (stato) {
+    case FIRSTSTART:
+      //Serial.print("STATO :"); Serial.println(FIRSTSTART);
+      firstServo();
+      stato = FILL;
+      break;
+    case FILL:
+      //Serial.print("STATO :"); Serial.println(FILL);
+      if (gameActivated) {
+        fillTheGlasses();
+        waterSolved = seq_cmp(yourWaterSteps, waterSteps, VALNUM);
+        digitalWrite(resetLightPin, !waterSolved);
+        Mb.R[DEVICES[7]] = !waterSolved;
+        digitalWrite(playLightPin, waterSolved);
+        Mb.R[DEVICES[0]] = waterSolved;
+        if (waterSolved) {
+          Mb.R[SENSORS[0]] = waterSolved;
+          stato = PLAY;
+          interrupt_time = millis();
+        }
+      }
+      break;
+    case PLAY:
+      //Serial.print("STATO :"); Serial.println(PLAY);
+      playInstrument();
+      break;
   }
 }
 
 void fillTheGlasses() {
-  Serial.print("resetState-pre :"); Serial.print(resetState);
-  resetState = digitalRead(*resetButtonPin);
-  Serial.print(" - post :"); Serial.print(resetState);
-  Serial.print(" - real :"); Serial.println(digitalRead(*resetButtonPin));
-  if (resetState)  emptiesGlasses();
+  //Serial.print("resetState-pre :"); Serial.print(resetState);
+  resetState = digitalRead(resetButtonPin);  // ricontrolla se meglio analog o digital
+  //  Serial.print("Analog :"); Serial.print(analogRead(resetButtonPin));
+  //  Serial.print(" - Digital :"); Serial.println(digitalRead(resetButtonPin));
+  if (!resetState)  emptyGlasses();
   for (int i = 0; i < VALNUM; i++) {
-    valvButtonState[i] = digitalRead(*valvButtonPins[i]);
-    if (!valvButtonState[i]) {
+    valvButtonState[i] = digitalRead(valvButtonPins[i]);
+    if (!valvButtonState[i] && yourWaterSteps[i] < 10) {
       openValv(i);
       yourWaterSteps[i] = yourWaterSteps[i] + 1;
       Mb.R[SENSORS[i + 1]] = yourWaterSteps[i];
     }
   }
-  interrupt_time = millis();
 }
 
 void openValv(int v) {
-  digitalWrite(*valvPins[v], HIGH); // HIGH se uso SSRelay
-  delay(fluxTime);
-  digitalWrite(*valvPins[v], LOW);
+  digitalWrite(valvPins[v], HIGH); // HIGH se uso SSRelay
+  mydelay(fluxTime[v]);
+  digitalWrite(valvPins[v], LOW);
+  mydelay(200);
 }
 
-void emptiesGlasses() {
+void emptyGlasses() {
+  Serial.println("Svuota bicchieri");
   for (int i = 0; i < VALNUM; i++) {
     yourWaterSteps[i] = 0;
     Mb.R[SENSORS[i + 1]] = yourWaterSteps[i];
   }
-  for (servoPos = 0; servoPos <= 110; servoPos++) { // goes from 0 degrees to 180 degrees
-    Serial.print("servoPos :"); Serial.println(servoPos); // in steps of 1 degree
+  glassesServo.attach(23);
+  for (servoPos = 0; servoPos <= 140; servoPos++) { // goes from 0 degrees to 180 degrees
+    //Serial.print("servoPos :"); Serial.println(servoPos); // in steps of 1 degree
     glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
+    mydelay(30);                       // waits 15ms for the servo to reach the position
   }
-  for (servoPos = 110; servoPos >= 0; servoPos--) { // goes from 180 degrees to 0 degrees
+  mydelay(1000);
+  for (servoPos = 140; servoPos >= 0; servoPos--) { // goes from 180 degrees to 0 degrees
     Serial.print("servoPos :"); Serial.println(servoPos);
     glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
+    mydelay(30);                       // waits 15ms for the servo to reach the position
   }
+  glassesServo.detach();
+  stato = FILL;
+}
+
+void firstServo() {
+  glassesServo.attach(23);
+  for (servoPos = 140; servoPos >= 0; servoPos--) { // goes from 180 degrees to 0 degrees
+    Serial.print("servoPos :"); Serial.println(servoPos);
+    glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
+    mydelay(30);                       // waits 15ms for the servo to reach the position
+  }
+  glassesServo.detach();
 }
 
 void buttonUpdate(int ite) {
@@ -239,7 +274,7 @@ void buttonUpdate(int ite) {
 void fallingEdgeAction(int b, int iter) {
   pressed = true;
   yourHammSequence[iter] = b;
-  //Mb.R[SENSORS[b]] = hammButtonState[b];
+  Mb.R[SENSORS[b + 8]] = hammButtonState[b];
   interrupt_time = millis();
   Serial.print("iter: "); Serial.print(iter); Serial.print(" - pressed: "); Serial.println(b);
   printHam();
@@ -247,7 +282,7 @@ void fallingEdgeAction(int b, int iter) {
 }
 
 void playInstrument() {
-  if (!pressed) playState = !digitalRead(*playButtonPin);
+  if (!pressed) playState = !digitalRead(playButtonPin);
   if (playState) {
     Serial.println("play pressed");
     Mb.R[SENSORS[0]]++;
@@ -256,10 +291,7 @@ void playInstrument() {
     buttonUpdate(note);
     if (pressed) {
       if (millis() - interrupt_time > 3000 || note == noteNum) {
-        Serial.println("too slow");
-        pressed = false;
-        note = 0;
-        interrupt_time = millis();
+        Serial.println("CHECK");
         if (seq_cmp(yourHammSequence, hammSequence, noteNum)) {
           puzzleSolved = true;
           triggered = 1;
@@ -269,11 +301,16 @@ void playInstrument() {
           seq_clear(yourHammSequence, noteNum);
           printHam();
         }
+        pressed = false;
+        note = 0;
+        interrupt_time = millis();
         Mb.R[STATE] = puzzleSolved;
       }
     }
-    digitalWrite(*playLightPin, !pressed);
-    Mb.R[DEVICES[0]] = !pressed;
+    if (!puzzleSolved) {
+      digitalWrite(playLightPin, !pressed);
+      Mb.R[DEVICES[0]] = !pressed;
+    }
   }
   else {
     seq_clear(yourHammSequence, noteNum);
@@ -313,6 +350,7 @@ void trigger(int s, boolean trig) {
 
 // Resetta il gioco
 void reset() {
+  Mb.R[RESET] = LOW;
   for (int i = 0; i < ACTNUM ; i++) {
     trigger(i, LOW);
   }
@@ -327,7 +365,6 @@ void reset() {
   triggered = false;
   puzzleSolved = false;
   Mb.R[STATE] = puzzleSolved;
-  Mb.R[RESET] = LOW;
   if (!ALWAYSACTIVE) {
     gameActivated = false;
     Mb.R[ACTIVE] = gameActivated;
@@ -335,7 +372,7 @@ void reset() {
 
   // reset per il gioco
   waterSolved = 0;
-  emptiesGlasses();
+  emptyGlasses();
   seq_clear(yourHammSequence, noteNum);
 }
 
@@ -353,10 +390,10 @@ void listenFromEth() {
     for (int i = 0; i < DEVNUM ; i++) {
       switch (i) {
         case 0: // play light
-          digitalWrite(*playLightPin, Mb.R[DEVICES[i]]);
+          digitalWrite(playLightPin, Mb.R[DEVICES[i]]);
           break;
         case 7: //reset light
-          digitalWrite(*resetLightPin, Mb.R[DEVICES[i]]);
+          digitalWrite(resetLightPin, Mb.R[DEVICES[i]]);
           break;
         case 8: // servo
           digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
@@ -409,4 +446,11 @@ void printRegister() {
   }
   Serial.print("ACTIVATION: "); Serial.println(Mb.R[ACTIVE]);
   Serial.println();
+}
+
+void mydelay(float d) {
+  unsigned long t = millis();
+  while (millis() < t + d) {
+    Mb.Run();
+  }
 }

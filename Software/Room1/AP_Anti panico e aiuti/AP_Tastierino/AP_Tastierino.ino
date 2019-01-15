@@ -80,7 +80,7 @@ void loop()
 void gameUpdate() {
   button0.update();
 
-  if (button0.risingEdge()) panic = true;
+  if (button0.fallingEdge()) panic = true;
   Mb.R[SENSORS[0]] = panic;
   Mb.R[SENSORS[1]] = digitalRead(sensPins[1]);
 }

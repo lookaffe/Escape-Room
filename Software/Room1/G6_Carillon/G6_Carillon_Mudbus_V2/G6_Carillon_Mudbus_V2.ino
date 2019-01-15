@@ -32,7 +32,7 @@ const int sensPins[SENNUM] = {23, 21, 19, 17, 15, 22, 20, 18}; // switch
 const int actPins[ACTNUM] = {};
 const int devPins[DEVNUM] = {4} ; //buzzer
 
-int sequence[SENNUM] = {0, 1, 1, 0, 0, 1, 0, 1};      //the right sequence
+int sequence[SENNUM] = {1, 0, 0, 1, 0, 1, 0, 1};      //the right sequence
 int yourSequence[SENNUM] = {0, 0, 0, 0, 0, 0, 0, 0};   //user sequence
 
 boolean sensStatus[SENNUM] = {1, 1, 1, 1, 1, 1, 1, 1};
@@ -216,6 +216,7 @@ void reset() {
     gameActivated = false;
     Mb.R[ACTIVE] = gameActivated;
   }
+  seq_clear(yourSequence);
 }
 
 void listenFromEth() {

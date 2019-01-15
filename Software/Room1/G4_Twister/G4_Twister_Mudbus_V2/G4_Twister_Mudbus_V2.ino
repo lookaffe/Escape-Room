@@ -1,4 +1,4 @@
-//Teensy LC
+//Teensy 3.2
 
 #include <SPI.h>
 #include <Ethernet.h>
@@ -17,7 +17,7 @@
 #define SAMPLE 50
 
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0x93}; //Dipende da ogni DEVICESitivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 0, 110};                           //This needs to be unique in your network - only one puzzle can have this IP
+uint8_t ip[] = {10, 0, 0, 104};                           //This needs to be unique in your network - only one puzzle can have this IP
 
 //Modbus Registers Offsets (0-9999)
 const int STATE = 0;
@@ -33,7 +33,7 @@ bool triggered = false; // has the control room triggered some actuator?
 bool gameActivated = ALWAYSACTIVE; // is the game active?
 
 //Used Pins
-const int actPins[ACTNUM] = {22, 23}; // relay
+const int actPins[ACTNUM] = {21, 23}; // relayBotola , relayQuadro
 const int devPins[DEVNUM] = {} ;
 
 int sequence[SENNUM] = {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0};    //the right sequence
@@ -82,6 +82,7 @@ void setup() {
   pinMode(actPins[0], OUTPUT);
   pinMode(actPins[1], OUTPUT);
   digitalWrite(actPins[0], HIGH);
+  mydelay(500);
   digitalWrite(actPins[1], HIGH);
 
   // 0x5A is the MPR121 I2C address on the Bare Touch Board
@@ -159,7 +160,7 @@ void gameUpdate() {
   //Adafruit
   if (row == SAMPLE) {
     checkTouch();
-    //printHandsValues();    //Debug for hands
+    printHandsValues();    //Debug for hands
     row = 0;
   }
   for (int col = 0; col < HANDS; col++) {
@@ -214,15 +215,18 @@ void printFeetValues(int i, bool a) {
 void isPuzzleSolved() {
   puzzleSolved = (seq_cmp(yourSequence, sequence)) ? true : false;
   triggered = puzzleSolved;
-  trigger(0, puzzleSolved);
-  trigger(1, puzzleSolved);
   Mb.R[STATE] = puzzleSolved;
+  if (puzzleSolved) {
+    trigger(0, puzzleSolved);
+    mydelay(3500);
+    trigger(1, puzzleSolved);
+  }
 }
 
 // Azione su ricezione comando "trigger"
 void trigger(int s, boolean trig) {
   Mb.R[ACTUATORS[s]] = trig;
-  Serial.print(" was just touched");Serial.println(trig);
+  //Serial.print(" was just touched");Serial.println(trig);
   digitalWrite(actPins[s], !trig);
   delay(10);
 }
@@ -258,7 +262,6 @@ void reset() {
 void listenFromEth() {
   if (Mb.R[RESET]) reset();
   else {
-    triggered = Mb.R[STATE];
     for (int i = 0; i < SENNUM ; i++) {
       sensStatus[i] = Mb.R[SENSORS[i]];
     }
@@ -270,12 +273,13 @@ void listenFromEth() {
       digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
     }
     puzzleSolved = Mb.R[STATE];
-    if (Mb.R[STATE]) {
-      for (int i = 0; i < ACTNUM ; i++) {
-        trigger(i, Mb.R[STATE]);
-      }
+    if (Mb.R[STATE] && !triggered) {
+      trigger(0, HIGH);
+      mydelay(3500);
+      trigger(1, HIGH);
     }
     gameActivated = Mb.R[ACTIVE];
+    triggered = Mb.R[STATE];
   }
 }
 
@@ -293,3 +297,11 @@ void printRegister() {
   Serial.print("ACTIVATION: "); Serial.println(Mb.R[ACTIVE]);
   Serial.println();
 }
+
+void mydelay(float d) {
+  unsigned long t = millis();
+  while (millis() < t + d) {
+    Mb.Run();
+    }
+}
+

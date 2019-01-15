@@ -52,19 +52,19 @@ const int devPins[DEVNUM] = {21, 0, 2, 4, 6, 8, 7, 33, 23} ; // , 21 playLight, 
 int sensStatus[SENNUM] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 // per questo gioco------
-const int *playLightPin = &devPins[0];
-const int *playButtonPin = &sensPins[0];
+const int playLightPin = 21;
+const int playButtonPin = 19;
 boolean playState = false;
 
-const int *resetLightPin = &devPins[7];
-const int *resetButtonPin = &sensPins[7];
-boolean resetState = false;
+const int resetLightPin = 33;
+const int resetButtonPin = 35;
+int resetState = false;
 
-const int *valvPins[VALNUM] = {&devPins[1], &devPins[2], &devPins[3], &devPins[4], &devPins[5], &devPins[6]};
-const int *valvButtonPins[VALNUM] = {&sensPins[1], &sensPins[2], &sensPins[3], &sensPins[4], &sensPins[5], &sensPins[6]};
+const int valvPins[VALNUM] = {0, 2, 4, 6, 8, 7};
+const int valvButtonPins[VALNUM] = {17, 15, 22, 20, 18, 16};
 int valvButtonState[VALNUM] = {0, 0, 0, 0, 0, 0};
 
-const int *hammButtonPins[HAMNUM] = {&sensPins[8], &sensPins[9], &sensPins[10], &sensPins[11], &sensPins[12], &sensPins[13]};
+const int hammButtonPins[HAMNUM] = { 25, 24, 26, 28, 30, 32};
 int hammButtonState[HAMNUM] = {0, 0, 0, 0, 0, 0};
 
 const long fluxTime = 200; // 2900 per 0,5 cl
@@ -119,25 +119,25 @@ void setup() {
 
   //Set Pin mode
   for (int i = 0; i < VALNUM; i++) {
-    pinMode(*valvPins[i], OUTPUT);
-    pinMode(*valvButtonPins[i], INPUT);
-    digitalWrite(*valvPins[i], LOW);  // LOW se uso SSRelay
+    pinMode(valvPins[i], OUTPUT);
+    pinMode(valvButtonPins[i], INPUT);
+    digitalWrite(valvPins[i], LOW);  // LOW se uso SSRelay
   }
   for (int i = 0; i < HAMNUM; i++) {
-    pinMode(*hammButtonPins[i], INPUT);
+    pinMode(hammButtonPins[i], INPUT);
   }
-  pinMode(*playButtonPin, INPUT);
-  pinMode(*playLightPin, OUTPUT);
-  digitalWrite(*playLightPin, LOW);
+  pinMode(playButtonPin, INPUT);
+  pinMode(playLightPin, OUTPUT);
+  digitalWrite(playLightPin, LOW);
 
-  pinMode(*resetButtonPin, INPUT);
-  pinMode(*resetLightPin, OUTPUT);
-  digitalWrite(*resetLightPin, HIGH);
+  pinMode(resetButtonPin, INPUT);
+  pinMode(resetLightPin, OUTPUT);
+  digitalWrite(resetLightPin, HIGH);
 
   interrupt_time = millis();
 
   glassesServo.attach(23);
-  reset();
+  firstServo();
 }
 
 void loop()
@@ -156,9 +156,9 @@ void gameUpdate() {
   if (!waterSolved) {
     fillTheGlasses();
     waterSolved = seq_cmp(yourWaterSteps, waterSteps, VALNUM);
-    digitalWrite(*resetLightPin, !waterSolved);
+    digitalWrite(resetLightPin, !waterSolved);
     Mb.R[DEVICES[7]] = !waterSolved;
-    digitalWrite(*playLightPin, waterSolved);
+    digitalWrite(playLightPin, waterSolved);
     Mb.R[DEVICES[0]] = waterSolved;
     if (waterSolved) Mb.R[SENSORS[0]] = waterSolved;
   }
@@ -168,13 +168,13 @@ void gameUpdate() {
 }
 
 void fillTheGlasses() {
-  Serial.print("resetState-pre :"); Serial.print(resetState);
-  resetState = digitalRead(*resetButtonPin);
+  //Serial.print("resetState-pre :"); Serial.print(resetState);
+  resetState = analogRead(resetButtonPin);
   Serial.print(" - post :"); Serial.print(resetState);
-  Serial.print(" - real :"); Serial.println(digitalRead(*resetButtonPin));
-  if (resetState)  emptiesGlasses();
+  Serial.print(" - real :"); Serial.println(digitalRead(resetButtonPin));
+  if (analogRead(resetButtonPin))  emptiesGlasses();
   for (int i = 0; i < VALNUM; i++) {
-    valvButtonState[i] = digitalRead(*valvButtonPins[i]);
+    valvButtonState[i] = digitalRead(valvButtonPins[i]);
     if (!valvButtonState[i]) {
       openValv(i);
       yourWaterSteps[i] = yourWaterSteps[i] + 1;
@@ -185,9 +185,10 @@ void fillTheGlasses() {
 }
 
 void openValv(int v) {
-  digitalWrite(*valvPins[v], HIGH); // HIGH se uso SSRelay
+  digitalWrite(valvPins[v], HIGH); // HIGH se uso SSRelay
   delay(fluxTime);
-  digitalWrite(*valvPins[v], LOW);
+  digitalWrite(valvPins[v], LOW);
+  delay(200);
 }
 
 void emptiesGlasses() {
@@ -195,15 +196,24 @@ void emptiesGlasses() {
     yourWaterSteps[i] = 0;
     Mb.R[SENSORS[i + 1]] = yourWaterSteps[i];
   }
-  for (servoPos = 0; servoPos <= 110; servoPos++) { // goes from 0 degrees to 180 degrees
-    Serial.print("servoPos :"); Serial.println(servoPos); // in steps of 1 degree
+  for (servoPos = 0; servoPos <= 170; servoPos++) { // goes from 0 degrees to 180 degrees
+    //Serial.print("servoPos :"); Serial.println(servoPos); // in steps of 1 degree
     glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
+    delay(30);                       // waits 15ms for the servo to reach the position
   }
-  for (servoPos = 110; servoPos >= 0; servoPos--) { // goes from 180 degrees to 0 degrees
+  delay(1000);
+  for (servoPos = 170; servoPos >= 0; servoPos--) { // goes from 180 degrees to 0 degrees
     Serial.print("servoPos :"); Serial.println(servoPos);
     glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
+    delay(30);                       // waits 15ms for the servo to reach the position
+  }
+}
+
+void firstServo() {
+  for (servoPos = 170; servoPos >= 0; servoPos--) { // goes from 180 degrees to 0 degrees
+    Serial.print("servoPos :"); Serial.println(servoPos);
+    glassesServo.write(servoPos);              // tell servo to go to position in variable 'pos'
+    delay(30);                       // waits 15ms for the servo to reach the position
   }
 }
 
@@ -247,7 +257,7 @@ void fallingEdgeAction(int b, int iter) {
 }
 
 void playInstrument() {
-  if (!pressed) playState = !digitalRead(*playButtonPin);
+  if (!pressed) playState = !digitalRead(playButtonPin);
   if (playState) {
     Serial.println("play pressed");
     Mb.R[SENSORS[0]]++;
@@ -272,7 +282,7 @@ void playInstrument() {
         Mb.R[STATE] = puzzleSolved;
       }
     }
-    digitalWrite(*playLightPin, !pressed);
+    digitalWrite(playLightPin, !pressed);
     Mb.R[DEVICES[0]] = !pressed;
   }
   else {
@@ -353,10 +363,10 @@ void listenFromEth() {
     for (int i = 0; i < DEVNUM ; i++) {
       switch (i) {
         case 0: // play light
-          digitalWrite(*playLightPin, Mb.R[DEVICES[i]]);
+          digitalWrite(playLightPin, Mb.R[DEVICES[i]]);
           break;
         case 7: //reset light
-          digitalWrite(*resetLightPin, Mb.R[DEVICES[i]]);
+          digitalWrite(resetLightPin, Mb.R[DEVICES[i]]);
           break;
         case 8: // servo
           digitalWrite(devPins[i], Mb.R[DEVICES[i]]);

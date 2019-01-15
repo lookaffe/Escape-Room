@@ -65,7 +65,7 @@ void loop()
 {
   Mb.Run();
   listenFromEth();
-  if (!triggered) {
+  if (!triggered && gameActivated) {
     gameUpdate();
     isPuzzleSolved();
   }

@@ -35,6 +35,7 @@ const int STATE = 0;
 const int SENSORS[SENNUM] = {1, 2, 3};
 const int ACTUATORS[ACTNUM] = {};
 const int DEVICES[DEVNUM] = {};
+const int RESTART = 99;
 const int RESET = 100;
 const int ACTIVE = 124;
 
@@ -57,6 +58,9 @@ HX711 scale3(DOUT3, CLK);
 
 const float minWeigth = 75.0;
 const float maxWeigth = 95.0;
+
+bool check = false;
+int count = 0;
 
 //ModbusIP object
 Mudbus Mb;
@@ -91,7 +95,6 @@ void setup() {
   long zero_factor1 = scale1.read_average(); //Get a baseline reading
   long zero_factor2 = scale2.read_average(); //Get a baseline reading
   long zero_factor3 = scale3.read_average(); //Get a baseline reading
-
 }
 
 void loop()
@@ -102,7 +105,7 @@ void loop()
     gameUpdate();
     isPuzzleSolved();
   }
-  printRegister();
+  //printRegister();
 }
 
 void gameUpdate() {
@@ -132,11 +135,28 @@ void gameUpdate() {
   Mb.R[SENSORS[2]] = weigth3;
   //  Serial.print(minWeigth); Serial.print(" < "); Serial.print(weigth1); Serial.print(" < "); Serial.println(maxWeigth);
   if (((minWeigth < weigth1) && (weigth1 < maxWeigth)) && ((minWeigth < weigth2) && (weigth2 < maxWeigth)) && ((minWeigth < weigth3) && (weigth3 < maxWeigth))) puzzleSolved = true;
-  triggered = puzzleSolved;
+
 }
 
 void isPuzzleSolved() {
-  Mb.R[STATE] = puzzleSolved;
+  check = puzzleSolved;
+  if (puzzleSolved) {
+    count++;
+    if (count > 13) {
+      if (check == puzzleSolved) {
+        Mb.R[STATE] = check;
+        triggered = check;
+      }
+      count = 0;
+      check = false;
+    }
+    Serial.print("ps "); Serial.print("- "); Serial.println(puzzleSolved);
+    Serial.print("check "); Serial.print("- "); Serial.println(check);
+    Serial.print("count "); Serial.print("- "); Serial.println(count);
+  }
+  else {
+    count = 0;
+  }
 }
 
 // action on "trigger"
@@ -191,6 +211,7 @@ void listenFromEth() {
     }
     gameActivated = Mb.R[ACTIVE];
   }
+  if(Mb.R[RESTART]) asm volatile (" jmp 0 ");
 }
 
 void printRegister() {
