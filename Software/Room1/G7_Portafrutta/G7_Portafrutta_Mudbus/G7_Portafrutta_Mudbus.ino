@@ -9,6 +9,7 @@
 #include <Ethernet.h>
 #include <Mudbus.h>
 #include "HX711.h"
+#include <avr/wdt.h>
 
 #define CLK  3
 #define DOUT1  2
@@ -95,6 +96,8 @@ void setup() {
   long zero_factor1 = scale1.read_average(); //Get a baseline reading
   long zero_factor2 = scale2.read_average(); //Get a baseline reading
   long zero_factor3 = scale3.read_average(); //Get a baseline reading
+
+  wdt_enable(WDTO_8S);
 }
 
 void loop()
@@ -105,7 +108,7 @@ void loop()
     gameUpdate();
     isPuzzleSolved();
   }
-  //printRegister();
+  printRegister();
 }
 
 void gameUpdate() {
@@ -159,6 +162,24 @@ void isPuzzleSolved() {
   }
 }
 
+void setTare(){
+  //Set Pin mode
+  scale1.set_scale();
+  scale1.tare(); //Reset the scale to 0
+  scale2.set_scale();
+  scale2.tare(); //Reset the scale to 0
+  scale3.set_scale();
+  scale3.tare(); //Reset the scale to 0
+
+  Mb.Run();
+  long zero_factor1 = scale1.read_average(); //Get a baseline reading
+  Mb.Run();
+  long zero_factor2 = scale2.read_average(); //Get a baseline reading
+  Mb.Run();
+  long zero_factor3 = scale3.read_average(); //Get a baseline reading
+  Mb.Run();
+}
+
 // action on "trigger"
 void trigger(int s, boolean trig) {
   Mb.R[ACTUATORS[s]] = trig;
@@ -187,6 +208,7 @@ void reset() {
     gameActivated = false;
     Mb.R[ACTIVE] = gameActivated;
   }
+  setTare();
 }
 
 void listenFromEth() {
@@ -212,6 +234,7 @@ void listenFromEth() {
     gameActivated = Mb.R[ACTIVE];
   }
   if(Mb.R[RESTART]) asm volatile (" jmp 0 ");
+  wdt_reset();
 }
 
 void printRegister() {

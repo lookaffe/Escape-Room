@@ -107,7 +107,7 @@ int getNumber() {
   while (millis() - prevPressTime < 1500) {
     switch (key) {
       case NO_KEY:
-        //Mb.Run();
+        Mb.Run();
         break;
 
       case '0': case '1': case '2': case '3': case '4':
