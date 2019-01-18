@@ -2,7 +2,9 @@
 #define CPU_RESTART_VAL 0x5FA0004
 #define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
 
-#define DEVICE 1
+#include <avr/wdt.h>
+
+#define BOARD 1
 int led = 2;
 
 void setup() {
@@ -24,9 +26,9 @@ void loop() {
   delay(5000);Serial.println("loop");
   delay(5000);
 
-  if(DEVICE) {
-    asm volatile (" nop ");
-    asm volatile (" jmp 0 ");
+  if(BOARD) {
+    asm volatile ("nop");
+    asm volatile ("jmp 0x0000");
   }
     else CPU_RESTART;
   Serial.println("looopa");
