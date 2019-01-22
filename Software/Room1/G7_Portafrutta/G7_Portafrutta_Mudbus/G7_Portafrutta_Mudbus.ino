@@ -145,7 +145,7 @@ void isPuzzleSolved() {
   check = puzzleSolved;
   if (puzzleSolved) {
     count++;
-    if (count > 13) {
+    if (count > 8) {
       if (check == puzzleSolved) {
         Mb.R[STATE] = check;
         triggered = check;

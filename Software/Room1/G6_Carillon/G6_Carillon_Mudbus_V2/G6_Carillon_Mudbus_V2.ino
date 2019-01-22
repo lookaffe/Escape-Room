@@ -5,6 +5,12 @@
 #include <Mudbus.h>
 #include <Bounce.h>
 
+#include <Adafruit_SleepyDog.h>
+
+#define CPU_RESTART_ADDR (uint32_t *)0xE000ED0C
+#define CPU_RESTART_VAL 0x5FA0004
+#define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
+
 #define SENNUM  8 //total amount of sensors
 #define ACTNUM  0 //total amount of actuators
 #define DEVNUM  1 //total amount of internal devices
@@ -19,6 +25,7 @@ const int STATE = 0;
 const int SENSORS[SENNUM] = {1, 2, 3, 4, 5, 6, 7, 8};
 const int ACTUATORS[ACTNUM] = {};
 const int DEVICES[DEVNUM] = {51};
+const int RESTART = 99;
 const int RESET = 100;
 const int ACTIVE = 124;
 
@@ -86,9 +93,12 @@ void setup() {
 
   interrupt_time = millis();
 
+Watchdog.enable(4000);
 }
 
 void loop() {
+  Watchdog.reset();
+  delay(100);
   Mb.Run();
   listenFromEth();
   if (!triggered) {
@@ -144,7 +154,7 @@ void gameUpdate() {
 
 void fallingEdgeAction(int b) {
   pressed = true;
-  buzzer(340, 300);
+  buzzer(1500, 300);
   sensStatus[b] = HIGH;
   yourSequence[b] = sensStatus[b];
   Mb.R[SENSORS[b]] = sensStatus[b];
@@ -165,7 +175,7 @@ void isPuzzleSolved() {
       if (seq_cmp(yourSequence, sequence)) puzzleSolved = true;
       else {
         puzzleSolved = false;
-        buzzer(220, 1000);
+        buzzer(1000, 1000);
         seq_clear(yourSequence);
       }
       Mb.R[STATE] = puzzleSolved;
@@ -231,7 +241,7 @@ void listenFromEth() {
       triggered = triggered || Mb.R[ACTUATORS[i]];
     }
     for (int i = 0; i < DEVNUM ; i++) {
-      digitalWrite(devPins[i], Mb.R[DEVICES[i]]);
+      if(Mb.R[DEVICES[i]]) buzzer(1500,1500);
     }
     puzzleSolved = Mb.R[STATE];
     if (Mb.R[STATE]) {
@@ -240,6 +250,7 @@ void listenFromEth() {
       }
     }
     gameActivated = Mb.R[ACTIVE];
+    if(Mb.R[RESTART]) CPU_RESTART;
   }
 }
 
