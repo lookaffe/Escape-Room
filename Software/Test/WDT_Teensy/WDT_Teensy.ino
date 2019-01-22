@@ -12,7 +12,7 @@ bool                ledState            = false;
 unsigned long       timer;
 
 void setup() {
-
+  Serial.begin(9600);
   // initialize the digital pin as an output.
   pinMode(led, OUTPUT);
 
@@ -25,32 +25,32 @@ void setup() {
   ledState = true;
   digitalWrite(led, ledState);
   delay(5000UL);
+Serial.println("setup not blinking");
 
   // Setup WDT
-  noInterrupts();                                         // don't allow interrupts while setting up WDOG
-  WDOG_UNLOCK = WDOG_UNLOCK_SEQ1;                         // unlock access to WDOG registers
+  cli();                                         // don't allow interrupts while setting up WDOG
+  WDOG_UNLOCK = WDOG_UNLOCK_SEQ1; Serial.println("there");                        // unlock access to WDOG registers
   WDOG_UNLOCK = WDOG_UNLOCK_SEQ2;
-  delayMicroseconds(1);                                   // Need to wait a bit..
-
+  delayMicroseconds(1);  
+  
+  // Need to wait a bit..
   // for this demo, we will use 1 second WDT timeout (e.g. you must reset it in < 1 sec or a boot occurs)
-  WDOG_TOVALH = 0x006d;
-  WDOG_TOVALL = 0xdd00;
+  WDOG_TOVALH = 200;
+  WDOG_TOVALL = 0;
 
   // This sets prescale clock so that the watchdog timer ticks at 7.2MHz
-  WDOG_PRESC  = 0x400;
+  WDOG_PRESC  = 0;
 
   // Set options to enable WDT. You must always do this as a SINGLE write to WDOG_CTRLH
-  WDOG_STCTRLH |= WDOG_STCTRLH_ALLOWUPDATE |
-                  WDOG_STCTRLH_WDOGEN | WDOG_STCTRLH_WAITEN |
-                  WDOG_STCTRLH_STOPEN | WDOG_STCTRLH_CLKSRC;
+  WDOG_STCTRLH |= WDOG_STCTRLH_ALLOWUPDATE | WDOG_STCTRLH_WDOGEN | WDOG_STCTRLH_WAITEN | WDOG_STCTRLH_STOPEN | WDOG_STCTRLH_CLKSRC;
   interrupts();
-
+Serial.println("wdt activated");
 }
 
 void loop() {
 
   timer = millis() + 10000UL;                                 // length of time we will reset WDT
-
+Serial.println("loop");
   while (true) {
     ledState = !ledState;
     digitalWrite(led, ledState);

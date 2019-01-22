@@ -20,8 +20,9 @@ void setup()
   delay(5000UL);
   //attivo il watchdog e lo imposto
   //per una soglia di tempo di 4 Secondi
-  //Watchdog.enable(4000);
-  delay(1000);
+  //
+  //Watchdog.enable(1000);
+  //delay(1);
 }
 
 void loop()
@@ -34,7 +35,10 @@ void loop()
     delay(100UL);
     if (millis() < timer) {                                 // Have we timed out yet?
       //resetto il watchdog
-      //Watchdog.reset();
+        __disable_irq();
+      SIM_SRVCOP = 0x55;
+      SIM_SRVCOP = 0xAA;
+      __enable_irq();
     }
   } // while
 
