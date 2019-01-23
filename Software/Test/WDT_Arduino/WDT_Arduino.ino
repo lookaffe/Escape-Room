@@ -1,4 +1,4 @@
-//#include <Adafruit_SleepyDog.h>
+#include <Adafruit_SleepyDog.h>
 
 const int           led                 = 13;
 
@@ -35,10 +35,7 @@ void loop()
     delay(100UL);
     if (millis() < timer) {                                 // Have we timed out yet?
       //resetto il watchdog
-        __disable_irq();
-      SIM_SRVCOP = 0x55;
-      SIM_SRVCOP = 0xAA;
-      __enable_irq();
+      Watchdog.reset();
     }
   } // while
 

@@ -1,3 +1,3 @@
 void resetSpec() {
-  Serial.println("dai");
+  stato = 0;
 }

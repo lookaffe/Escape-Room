@@ -36,17 +36,28 @@ int sensStatus[SENNUM] = {LOW};
 //ModbusIP object
 Mudbus Mb;
 
+extern "C" void startup_early_hook() {}
+
+void myDelay(unsigned long d) {
+  unsigned long t = millis();
+  while (millis() < t + d) {
+    // service the COP
+    SIM_SRVCOP = 0x55;
+    SIM_SRVCOP = 0xAA;
+  }
+}
+
 void setup()
 {
   Serial.begin(9600);
   // reset for Ethernet Shield
   pinMode(9, OUTPUT);
   digitalWrite(9, LOW); // reset the WIZ820io
-  delay(1000);
+  myDelay(1000);
   digitalWrite(9, HIGH); // release the WIZ820io
 
   Ethernet.begin(mac, ip);
-  delay(5000);
+  myDelay(5000);
 
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());
@@ -114,6 +125,9 @@ void reset() {
 }
 
 void listenFromEth() {
+  // service the COP
+  SIM_SRVCOP = 0x55;
+  SIM_SRVCOP = 0xAA;
   if (Mb.R[RESET]) reset();
   else {
     triggered = Mb.R[STATE];

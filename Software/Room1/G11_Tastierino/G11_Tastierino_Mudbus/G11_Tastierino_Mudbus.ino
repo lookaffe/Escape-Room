@@ -58,15 +58,26 @@ Keypad kpd = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 //ModbusIP object
 Mudbus Mb;
 
+extern "C" void startup_early_hook() {}
+
+void myDelay(unsigned long d) {
+  unsigned long t = millis();
+  while (millis() < t + d) {
+    // service the COP
+    SIM_SRVCOP = 0x55;
+    SIM_SRVCOP = 0xAA;
+  }
+}
+
 void setup() {
   // reset for Ethernet Shield
   pinMode(9, OUTPUT);
   digitalWrite(9, LOW); // reset the WIZ820io
-  delay(1000);
+  myDelay(1000);
   digitalWrite(9, HIGH); // release the WIZ820io
 
   Ethernet.begin(mac, ip);
-  delay(5000);
+  myDelay(5000);
 
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());
@@ -165,6 +176,9 @@ void reset() {
 }
 
 void listenFromEth() {
+  // service the COP
+  SIM_SRVCOP = 0x55;
+  SIM_SRVCOP = 0xAA;
   if (Mb.R[RESET]) reset();
   else {
     for (int i = 0; i < SENNUM ; i++) {
@@ -187,7 +201,7 @@ void listenFromEth() {
     gameActivated = Mb.R[ACTIVE];
   }
   date = ((Mb.R[51] * 10000) + (Mb.R[52] * 100) + Mb.R[53] - 2000);
-  if(Mb.R[RESTART]) CPU_RESTART;
+  if (Mb.R[RESTART]) CPU_RESTART;
 }
 
 void printRegister() {

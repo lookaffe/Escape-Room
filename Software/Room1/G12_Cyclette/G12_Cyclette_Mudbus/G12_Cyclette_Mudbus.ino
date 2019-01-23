@@ -3,10 +3,14 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-//Teensy 3.2
-
 #include <Mudbus.h>
 #include <Bounce.h>
+
+#include <Adafruit_SleepyDog.h>
+
+#define CPU_RESTART_ADDR (uint32_t *)0xE000ED0C
+#define CPU_RESTART_VAL 0x5FA0004
+#define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
 
 #define SENNUM  6 //total amount of sensors
 #define ACTNUM  0 //total amount of actuators
@@ -76,9 +80,12 @@ void setup() {
       prevRotationTime[i] = millis();
     }
   }
+  Watchdog.enable(4000);
 }
 
 void loop() {
+  Watchdog.reset();
+  delay(1);
   Mb.Run();
   //Serial.println(players);
   listenFromEth();

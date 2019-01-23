@@ -93,7 +93,7 @@ void setup() {
 
   interrupt_time = millis();
 
-Watchdog.enable(4000);
+  Watchdog.enable(4000);
 }
 
 void loop() {
@@ -147,9 +147,9 @@ void gameUpdate() {
   if (button7.fallingEdge()) {
     fallingEdgeAction(7);
   }
-//  if (button8.fallingEdge()) {
-//    fallingEdgeAction(8);
-//  }
+  //  if (button8.fallingEdge()) {
+  //    fallingEdgeAction(8);
+  //  }
 }
 
 void fallingEdgeAction(int b) {
@@ -241,7 +241,7 @@ void listenFromEth() {
       triggered = triggered || Mb.R[ACTUATORS[i]];
     }
     for (int i = 0; i < DEVNUM ; i++) {
-      if(Mb.R[DEVICES[i]]) buzzer(1500,1500);
+      if (Mb.R[DEVICES[i]]) buzzer(1500, 1500);
     }
     puzzleSolved = Mb.R[STATE];
     if (Mb.R[STATE]) {
@@ -250,7 +250,7 @@ void listenFromEth() {
       }
     }
     gameActivated = Mb.R[ACTIVE];
-    if(Mb.R[RESTART]) CPU_RESTART;
+    if (Mb.R[RESTART]) CPU_RESTART;
   }
 }
 
