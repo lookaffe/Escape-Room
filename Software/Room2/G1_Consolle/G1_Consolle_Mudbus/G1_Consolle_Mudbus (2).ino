@@ -1,16 +1,7 @@
 //Teensy 3.2
 
-/* se necessario il reset di valori specifici per il gioco decommentare le due linee sottostanti
-    scrivere la relativa funzione resetSpec
-*/
-//#define SPECRESET
-//#include "resetSpec.h"
-
-// Used device 0 for Teensy, 1 for ARDUINO
-#define DEVICE 0 //
-
 #define SENNUM  4       //total amount of sensors
-#define ACTNUM  4       //total amount of actuators
+#define ACTNUM  3       //total amount of actuators
 #define DEVNUM  0       //total amount of internal devices
 #define ALWAYSACTIVE 1  //1 if the game is always active
 

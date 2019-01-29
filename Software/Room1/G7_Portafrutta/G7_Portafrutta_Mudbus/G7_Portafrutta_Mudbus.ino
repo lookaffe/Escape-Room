@@ -9,7 +9,8 @@
 #include <Ethernet.h>
 #include <Mudbus.h>
 #include "HX711.h"
-#include <avr/wdt.h>
+
+#include <Adafruit_SleepyDog.h>
 
 #define CLK  3
 #define DOUT1  2
@@ -66,17 +67,22 @@ int count = 0;
 //ModbusIP object
 Mudbus Mb;
 
-
 void setup() {
   Serial.begin(9600);
   // reset for Ethernet Shield
   pinMode(9, OUTPUT);
   digitalWrite(9, LOW); // reset the WIZ820io
-  delay(1000);
+  for (int i = 0; i < 100; i++) {
+    delay(10);
+    Watchdog.reset();
+  }
   digitalWrite(9, HIGH); // release the WIZ820io
 
   Ethernet.begin(mac, ip);
-  delay(5000);
+  for (int i = 0; i < 100; i++) {
+    delay(50);
+    Watchdog.reset();
+  }
 
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());
@@ -97,11 +103,12 @@ void setup() {
   long zero_factor2 = scale2.read_average(); //Get a baseline reading
   long zero_factor3 = scale3.read_average(); //Get a baseline reading
 
-  wdt_enable(WDTO_8S);
+  Watchdog.enable(4000);
 }
 
-void loop()
-{
+void loop() {
+  Watchdog.reset();
+  delay(1);
   Mb.Run();
   listenFromEth();
   if (!triggered) {
@@ -162,7 +169,7 @@ void isPuzzleSolved() {
   }
 }
 
-void setTare(){
+void setTare() {
   //Set Pin mode
   scale1.set_scale();
   scale1.tare(); //Reset the scale to 0
@@ -233,8 +240,7 @@ void listenFromEth() {
     }
     gameActivated = Mb.R[ACTIVE];
   }
-  if(Mb.R[RESTART]) asm volatile (" jmp 0 ");
-  wdt_reset();
+  if (Mb.R[RESTART]) asm volatile (" jmp 0 ");
 }
 
 void printRegister() {

@@ -59,11 +59,17 @@ void setup() {
   // reset for Ethernet Shield
   pinMode(9, OUTPUT);
   digitalWrite(9, LOW); // reset the WIZ820io
-  delay(1000);
+  for (int i = 0; i < 100; i++) {
+    delay(10);
+    Watchdog.reset();
+  }
   digitalWrite(9, HIGH); // release the WIZ820io
 
   Ethernet.begin(mac, ip);
-  delay(5000);
+  for (int i = 0; i < 100; i++) {
+    delay(50);
+    Watchdog.reset();
+  }
 
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());
@@ -93,7 +99,7 @@ void loop() {
     gameUpdate();
     isPuzzleSolved();
   }
-  // bprintRegister();
+  printRegister();
 }
 
 void gameUpdate() {
@@ -218,7 +224,7 @@ void isPuzzleSolved() {
   //Serial.print("rpmMed: "); Serial.print(rpmMed);   Serial.print(" - ");
   if (rpmMed < maxRPM) {
     //if (rpmMed < minRPM) {
-      puzzleSolved = 0;
+    puzzleSolved = 0;
     //} else puzzleSolved = 2;
   } else puzzleSolved = 1;
 
