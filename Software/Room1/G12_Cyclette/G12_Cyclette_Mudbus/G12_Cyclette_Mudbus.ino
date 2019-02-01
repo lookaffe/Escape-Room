@@ -1,9 +1,9 @@
-//Teensy 3.2
+ //Teensy 3.2
 
 
 #include <SPI.h>
 #include <Ethernet.h>
-#include <Mudbus.h>
+#include <MudbusE.h>  // Mudbus modificata con controllo su connessione ethernet
 #include <Bounce.h>
 
 #include <Adafruit_SleepyDog.h>
@@ -53,7 +53,7 @@ const int maxRPM = 110;
 const int minRPM = 90;
 
 //ModbusIP object
-Mudbus Mb;
+MudbusE Mb;
 
 void setup() {
   // reset for Ethernet Shield
@@ -298,6 +298,10 @@ void listenFromEth() {
     gameActivated = Mb.R[ACTIVE];
   }
   players = Mb.R[51];
+
+
+//  // controllo se la connessione ethernet è attiva, altrimenti resetto
+if(!Mb.isConnected()) CPU_RESTART;
 }
 
 void printRegister() {

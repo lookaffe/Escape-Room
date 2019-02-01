@@ -2,7 +2,7 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-#include <Mudbus.h>
+#include <MudbusE.h>
 
 #define SENNUM  1 //total amount of sensors
 #define ACTNUM  1 //total amount of actuators
@@ -34,7 +34,7 @@ const int devPins[DEVNUM] = {} ;
 int sensStatus[SENNUM] = {LOW};
 
 //ModbusIP object
-Mudbus Mb;
+MudbusE Mb;
 
 extern "C" void startup_early_hook() {}
 
@@ -149,6 +149,7 @@ void listenFromEth() {
     }
     gameActivated = Mb.R[ACTIVE];
   }
+  if(!Mb.isConnected()) while(1){};
 }
 
 void printRegister() {

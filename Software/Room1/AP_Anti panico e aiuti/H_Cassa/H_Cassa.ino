@@ -2,7 +2,7 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-#include <Mudbus.h>
+#include <MudbusE.h>
 #include <Bounce.h>
 
 #define SENNUM  1 //total amount of sensors
@@ -37,7 +37,7 @@ int sensStatus[SENNUM] = {0};
 const int threshold = 1000;  // threshold value to decide when the detected sound is a knock or not
 
 //ModbusIP object
-Mudbus Mb;
+MudbusE Mb;
 
 extern "C" void startup_early_hook() {}
 
@@ -153,6 +153,7 @@ void listenFromEth() {
     }
     gameActivated = Mb.R[ACTIVE];
   }
+  if(!Mb.isConnected()) while(1){};
 }
 
 void printRegister() {
