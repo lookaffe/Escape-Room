@@ -1,5 +1,6 @@
- //Teensy 3.2
+//Teensy 3.2
 
+#define PRINT
 
 #include <SPI.h>
 #include <Ethernet.h>
@@ -99,7 +100,9 @@ void loop() {
     gameUpdate();
     isPuzzleSolved();
   }
+#ifdef PRINT
   printRegister();
+#endif
 }
 
 void gameUpdate() {
@@ -132,7 +135,7 @@ void gameUpdate() {
     Mb.R[SENSORS[i]] = rpm[i];
   }
 
-
+#ifdef PRINT
   if (printTime) {
     for (int y = 0; y < SENNUM; y++) {
       Serial.print("Cyc: ");
@@ -148,6 +151,7 @@ void gameUpdate() {
     printTime = false;
     Serial.println();
   }
+#endif
 }
 
 void isr_0()
@@ -300,8 +304,8 @@ void listenFromEth() {
   players = Mb.R[51];
 
 
-//  // controllo se la connessione ethernet è attiva, altrimenti resetto
-if(!Mb.isConnected()) CPU_RESTART;
+  //  // controllo se la connessione ethernet è attiva, altrimenti resetto
+  if (!Mb.isConnected()) CPU_RESTART;
 }
 
 void printRegister() {

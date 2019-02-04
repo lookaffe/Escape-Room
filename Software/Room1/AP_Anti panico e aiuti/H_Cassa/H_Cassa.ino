@@ -34,7 +34,7 @@ const int devPins[DEVNUM] = {};
 
 int sensStatus[SENNUM] = {0};
 
-const int threshold = 1000;  // threshold value to decide when the detected sound is a knock or not
+const int threshold = 10;  // threshold value to decide when the detected sound is a knock or not
 
 //ModbusIP object
 MudbusE Mb;
@@ -81,11 +81,12 @@ void loop()
     gameUpdate();
     isHelp();
   }
-  printRegister();
+  //printRegister();
 }
 
 void gameUpdate() {
   sensStatus[0] = analogRead(sensPins[0]);
+  Serial.println(sensStatus[0]);
 
   // if the sensor reading is greater than the threshold:
   (sensStatus[0] >= threshold) ? help = true : help = false;

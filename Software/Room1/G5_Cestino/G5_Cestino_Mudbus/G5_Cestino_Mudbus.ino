@@ -2,7 +2,13 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-#include <Mudbus.h>
+#include <MudbusE.h>
+
+#include <Adafruit_SleepyDog.h>
+
+#define CPU_RESTART_ADDR (uint32_t *)0xE000ED0C
+#define CPU_RESTART_VAL 0x5FA0004
+#define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
 
 #define SENNUM 6 //total amount of sensors
 #define ACTNUM 0 //total amount of actuators
@@ -36,7 +42,7 @@ int sensStatus[SENNUM] = {0, 0, 0, 0, 0, 0};
 int val = 100;
 
 //ModbusIP object
-Mudbus Mb;
+MudbusE Mb;
 
 void setup()
 {
@@ -44,11 +50,17 @@ void setup()
   // reset for Ethernet Shield
   pinMode(9, OUTPUT);
   digitalWrite(9, LOW); // reset the WIZ820io
-  delay(1000);
+  for (int i = 0; i < 100; i++) {
+    delay(10);
+    Watchdog.reset();
+  }
   digitalWrite(9, HIGH); // release the WIZ820io
 
   Ethernet.begin(mac, ip);
-  delay(5000);
+  for (int i = 0; i < 100; i++) {
+    delay(50);
+    Watchdog.reset();
+  }
 
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());
@@ -64,10 +76,14 @@ void setup()
   pinMode(sensPins[3], INPUT);
   pinMode(sensPins[4], INPUT);
   pinMode(sensPins[5], INPUT);
+
+  Watchdog.enable(4000);
 }
 
 void loop()
 {
+  Watchdog.reset();
+  delay(1);
   Mb.Run();
   listenFromEth();
   if (!triggered) {
@@ -79,9 +95,9 @@ void loop()
 
 void gameUpdate() {
   int count = 0;
-  int iter = 2000;  
+  int iter = 3000;
   for (int y = 0; y < iter; y++) {
-    bool puSo=0;
+    bool puSo = 0;
     for (int i = 0; i < SENNUM ; i++) {
       sensStatus[i] = analogRead(sensPins[i]);
       Mb.R[SENSORS[i]] = sensStatus[i];
@@ -90,11 +106,11 @@ void gameUpdate() {
       int pS = (sensStatus[i] < 100) ? 1 : 0;
       puSo = puSo || pS;
     }
-    Serial.print("puSo ");Serial.println(puSo);
+    Serial.print("puSo "); Serial.println(puSo);
     count = count + puSo;
-    Serial.print("count ");Serial.println(count);
+    Serial.print("count "); Serial.println(count);
   }
-  if(count == iter) puzzleSolved = true;
+  if (count == iter) puzzleSolved = true;
 }
 
 void isPuzzleSolved() {
@@ -154,6 +170,8 @@ void listenFromEth() {
     }
     gameActivated = Mb.R[ACTIVE];
   }
+  //  // controllo se la connessione ethernet è attiva, altrimenti resetto
+  if (!Mb.isConnected()) CPU_RESTART;
 }
 
 void printRegister() {
