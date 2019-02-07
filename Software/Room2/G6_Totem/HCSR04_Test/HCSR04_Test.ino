@@ -45,5 +45,5 @@ else{
 }
  
 //Aspetta 1000 microsecondi
-delay(1000);
+delayMicroseconds(100);
 }

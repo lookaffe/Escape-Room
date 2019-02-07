@@ -1,5 +1,7 @@
 //Teensy 3.2
 
+#define ONLINE // if you are working without ethernet comment this define
+
 #define SENNUM  3       //total amount of sensors
 #define ACTNUM  0       //total amount of actuators
 #define DEVNUM  0       //total amount of internal devices
