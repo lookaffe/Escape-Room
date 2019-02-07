@@ -34,7 +34,7 @@ const int devPins[DEVNUM] = {};
 
 int sensStatus[SENNUM] = {0};
 
-const int threshold = 10;  // threshold value to decide when the detected sound is a knock or not
+const int threshold = 500;  // threshold value to decide when the detected sound is a knock or not
 
 //ModbusIP object
 MudbusE Mb;
