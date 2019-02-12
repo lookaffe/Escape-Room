@@ -1,5 +1,7 @@
 //Teensy LC
 
+//#define ONLINE
+
 #define SENNUM  4       //total amount of sensors
 #define ACTNUM  1       //total amount of actuators
 #define DEVNUM  0       //total amount of internal devices

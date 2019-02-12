@@ -26,7 +26,7 @@ const int redLED = 4;              // Status LED
 const int greenLED = 5;            // Status LED
  
 // Tuning constants.  Could be made vars and hoooked to potentiometers for soft configuration, etc.
-const int threshold = 50;           // Minimum signal from the piezo to register as a knock
+const int threshold = 300;          // Minimum signal from the piezo to register as a knock
 const int rejectValue = 25;        // If an individual knock is off by this percentage of a knock we don't unlock..
 const int averageRejectValue = 15; // If the average timing of the knocks is off by this percent we don't unlock.
 const int knockFadeTime = 150;     // milliseconds we allow a knock to fade before we listen for another one. (Debounce timer.)
@@ -205,6 +205,7 @@ boolean validateKnock(){
   if (programButtonPressed==true){
       for (i=0;i<maximumKnocks;i++){ // normalize the times
         secretCode[i]= map(knockReadings[i],0, maxKnockInterval, 0, 100); 
+        Serial.println("Secret knock " + (String)i +": " + (String)secretCode[i]);
       }
       // And flash the lights in the recorded pattern to let us know it's been programmed.
       digitalWrite(greenLED, LOW);
@@ -239,7 +240,8 @@ boolean validateKnock(){
   int totaltimeDifferences=0;
   int timeDiff=0;
   for (i=0;i<maximumKnocks;i++){ // Normalize the times
-    knockReadings[i]= map(knockReadings[i],0, maxKnockInterval, 0, 100);      
+    knockReadings[i]= map(knockReadings[i],0, maxKnockInterval, 0, 100);
+    Serial.println("knock " + (String)i +": " + (String)knockReadings[i]);
     timeDiff = abs(knockReadings[i]-secretCode[i]);
     if (timeDiff > rejectValue){ // Individual value too far out of whack
       return false;

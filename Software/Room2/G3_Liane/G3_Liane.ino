@@ -2,6 +2,8 @@
 
 #include <MFRC522.h>
 
+#define ONLINE
+
 #define SENNUM  3       //total amount of sensors
 #define ACTNUM  0       //total amount of actuators
 #define DEVNUM  0       //total amount of internal devices
@@ -170,7 +172,7 @@ void gameUpdate() {
         }
       }
     } else sensStatus[i] = 0;
-    Mb.R[SENSORS[i]] = sensStatus[i];
+    sensorRegUpdate(i, sensStatus[i]);
     Serial.print("sensStatus[");Serial.print(i);Serial.print("] "); Serial.println(sensStatus[i]);   
   }Serial.println();
   puzzleSolved = (sensStatus[0] == 1 && sensStatus[1] == 1 && sensStatus[2] == 1) ? true : false;

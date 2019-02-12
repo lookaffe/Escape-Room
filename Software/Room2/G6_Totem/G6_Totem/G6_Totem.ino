@@ -3,21 +3,30 @@
 //#define ONLINE
 
 #define SENNUM  2       //total amount of sensors
-#define ACTNUM  1       //total amount of actuators
-#define DEVNUM  2       //total amount of internal devices
-#define ALWAYSACTIVE 1  //1 if the game is always active
+#define ACTNUM  3       //total amount of actuators
+#define DEVNUM  0       //total amount of internal devices
+#define ALWAYSACTIVE 0  //1 if the game is always active
 
 const int senPins[SENNUM] = {21, 23}; // Ultrasuono alto, Ultrasuono basso
-const int actPins[ACTNUM] = {2}; // elettrovalvola nuvola
-const int devPins[DEVNUM] = {0, 1}; // luce alta, luce bassa
+const int actPins[ACTNUM] = {0, 1, 2}; // relay luce alta, relay luce bassa elettrovalvola nuvola
+const int devPins[DEVNUM] = {}; // luce alta, luce bassa
 
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xE1, 0x29}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 1, 106};                     //This needs to be unique in your network - only one puzzle can have this IP
 
 int stato = 0;
+bool passUp = false;
+bool passDo = false;
+const long rainTime = 2000; // tempo di apertura elettrovalvola pioggia
+const float distance = 70.00; // distanza minima di rilevamento ultrasuono
+elapsedMillis lapUp, lapDown = 0;
+const long lapTime = 3000; // tempo massimo per un giro
+elapsedMillis danceUp, danceDown = 0;
+const long danceTime = 10000; // tempo minimo di danza
+int count = 0;
 
 void resetSpec() {
-  stato = 0;
+  stato = 0; passUp = false; passDo = false;
 }
 
 byte trigPin[2] = {20, 22};  // Trigger is connected to this pin
@@ -26,16 +35,6 @@ float echoTime;       // Variable to store echo pulse time
 float CMs;            // Variable to carry Cm values
 
 #include <EscapeFunction.h>
-
-const float distance = 70.00;
-
-elapsedMillis lapUp, lapDown = 0;
-const long lapTime = 3000;
-elapsedMillis danceUp, danceDown = 0;
-const long danceTime = 10000;
-int count = 0;
-
-bool is = LOW;
 
 void setup()
 {
@@ -52,12 +51,11 @@ void loop()
 {
   Mb.Run();
   listenFromEth();
-  if (!triggered) {
+  if (!puzzleSolved) {
     gameUpdate();
     isPuzzleSolved();
   }
   printRegister();
-  Serial.println(); Serial.println(); Serial.println(); Serial.println(); Serial.println(); Serial.println();
 }
 
 void gameUpdate() {
@@ -66,45 +64,62 @@ void gameUpdate() {
     dist[i] = echoCM(i);    // Call non-void function to get the distance in cm
     myDelay(100);             // Delay 1/2 second
   }
-  Serial.println("lapUp " + (String)lapUp);
+  //Serial.println("lapUp " + (String)lapUp);
   switch (stato) {
     case 0:
       stato = Mb.R[ACTIVE];
       lapUp = 0;
       danceUp = 0;
+      actuatorRegUpdate(0, stato); // accendo la luce alta
       break;
     case 1:
+      passUp = false;
       if (dist[0] < distance) { // 1. se passo davanti al sensore alto
-        if (lapUp < lapTime) { // 3. se il tempo del giro è minore di quello stabilito (non sei lento)
-          if (danceUp > danceTime) {           
-            stato = 2; // 4. Se il tempo di danza è maggiore di quello stabilito (hai ballato abbastanza)
-            lapDown = 0; 
+        passUp = true;
+        if (lapUp < lapTime) { // 3. se il tempo del giro è minore di quello stabilito (non sei lento) e
+          if (danceUp > danceTime) {
+            stato = 2; // 4. Se il tempo di danza è maggiore di quello stabilito (hai ballato abbastanza) passo allo stato 2
+            lapDown = 0;
             danceDown = 0;
+            actuatorRegUpdate(0, 0);// spengo luce alta
+            actuatorRegUpdate(1, 1); // accendo luce bassa
           }
         } else {
           danceUp = 0; // 5. altrimenti aggiorno il tempo di ballo
         }
         lapUp = 0; // 2. comunque aggiorno il tempo del giro
       }
-      sensorRegUpdate(0, stato);
+      sensorRegUpdate(0, passUp);
       break;
     case 2:
-      if (dist[0] < distance && lapUp > 1500) stato = 1; // 0. se passo davanti al sensore alto, ritorno allo stato 1
-      if (dist[1] < distance) { // 1. se passo davanti al sensore basso
+      passDo = false;
+      sensorRegUpdate(0, 0); // resetto il registro dell'ultrasuono alto
+      if (dist[0] < distance && lapUp > 1500) {
+        stato = 1; // 0. se passo davanti al sensore alto, ritorno allo stato 1
+        sensorRegUpdate(1, 0); // resetto il registro dell'ultrasuono basso
+        actuatorRegUpdate(0, 1); // accendo luce alta
+        actuatorRegUpdate(1, 0);  // spengo luce bassa
+      }
+      if (dist[1] < distance) {
+        passDo = true;// 1. se passUpo davanti al sensore basso
         if (lapDown < lapTime) { // 3. se il tempo del giro è minore di quello stabilito (non sei lento)
           if (danceDown > danceTime) {
-            puzzleSolved = 1;  // 4. Se il tempo di danza è maggiore di quello stabilito (hai ballato abbastanza)
+            stato = 3;  // 4. Se il tempo di danza è maggiore di quello stabilito (hai ballato abbastanza)
           }
         } else {
           danceDown = 0; // 5. altrimenti aggiorno il tempo di ballo
         }
         lapDown = 0; // 2. comunque aggiorno il tempo del giro
       }
-      sensorRegUpdate(1, is);
-
+      sensorRegUpdate(1, passDo);
       break;
+      case 3:
+      actuatorRegUpdate(1, 0);  // spengo luce bassa
+      actuatorRegUpdate(2, 1); // apro elettrovalvola
+      myDelay(rainTime);
+      actuatorRegUpdate(2, 0); // chiudo elettrovalvola
+      puzzleSolved = 1;
   }
-
 }
 
 float echoCM(int n) {
