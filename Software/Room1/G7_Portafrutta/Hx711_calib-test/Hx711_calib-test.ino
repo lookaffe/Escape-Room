@@ -5,7 +5,7 @@
 
 HX711 scale(DOUT, CLK);
 
-float calibration_factor = -393400; //-392000 worked for my 1kg load cell
+float calibration_factor = -950000; //-392000 worked for my 1kg load cell
 float libToGr = 453.592;
 
 void setup() {

@@ -65,7 +65,7 @@ int resetState = false;
 
 const int valvPins[VALNUM] = {0, 2, 4, 6, 8, 7};
 const int valvButtonPins[VALNUM] = {17, 15, 22, 20, 18, 16};
-const long fluxTime[VALNUM] = {3250, 3350, 3400, 3700, 3250, 3350}; // 2900 per 0,5 cl
+long fluxTime[VALNUM] = {3250, 3350, 3400, 3700, 3250, 3350}; // 2900 per 0,5 cl
 int valvButtonState[VALNUM] = {0, 0, 0, 0, 0, 0};
 
 const int hammButtonPins[HAMNUM] = { 25, 24, 26, 28, 30, 32};
@@ -139,7 +139,7 @@ void setup() {
   pinMode(resetButtonPin, INPUT);
   pinMode(resetLightPin, OUTPUT);
   digitalWrite(resetLightPin, LOW);
-
+  valvTimeSetup();
   interrupt_time = millis();
 
   glassesServo.attach(23);
@@ -411,6 +411,15 @@ void listenFromEth() {
     }
     gameActivated = Mb.R[ACTIVE];
   }
+  valvTimeSetup();
+}
+
+void valvTimeSetup() {
+  for (int i = 0; i < VALNUM ; i++) {
+    fluxTime[i] = Mb.R[66 + i];
+    Serial.print("Time " +(String)i + " " + (String)fluxTime[i] + " - ");
+  }
+  Serial.println();
 }
 
 void printSteps() {

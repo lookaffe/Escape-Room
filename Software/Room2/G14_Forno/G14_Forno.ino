@@ -1,6 +1,6 @@
 //Teensy LC
 
-#define ONLINE
+//#define ONLINE
 
 #define SENNUM  4       //total amount of sensors
 #define ACTNUM  1       //total amount of actuators
@@ -11,9 +11,8 @@ const int senPins[SENNUM] = {20, 19, 18, 17}; // m1, m2, m3, m4
 const int actPins[ACTNUM] = {5}; // relayLuce
 const int devPins[DEVNUM] = {};
 
-//04:E9:E5:06:65:A0
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0x65, 0xA0}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 1, 113};                     //This needs to be unique in your network - only one puzzle can have this IP
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0x66, 0xF4}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t ip[] = {10, 0, 1, 114};                     //This needs to be unique in your network - only one puzzle can have this IP
 
 bool pressed[SENNUM] = {0, 0, 0, 0};
 
@@ -36,7 +35,7 @@ void loop()
     gameUpdate();
     isPuzzleSolved();
   }
-  printRegister();
+  //printRegister();
 }
 
 void gameUpdate() {
