@@ -1,6 +1,6 @@
 //Teensy 3.2
 
-//#define ONLINE
+#define ONLINE
 
 #define SENNUM  4       //total amount of sensors
 #define ACTNUM  3       //total amount of actuators
@@ -12,15 +12,17 @@
 #define ACQUA 1     // stato in attesa della pressione dell'ACQUA
 #define FIACCOLA 2  // stato in attesa della pressione della FIACCOLA
 #define CIAMBELLA 3 // stato in attesa della pressione della CIAMBELLA
+#define END 4
 
 #define SMOKEINTERVAL 5000  // intervallo tra una fumata e l'altra
 #define WATERLEVEL 50      // valore per presenza acqua
 
-const int senPins[SENNUM] = {20, 21, 19, 18}; // pulsanti, acqua, fiaccola, ingranaggio
-const int actPins[ACTNUM] = {0, 1, 2}; // relayFumo, relaySportello, relayIngranaggi
+const int senPins[SENNUM] = {21, 23, 17, 16}; // pulsanti, acqua, fiaccola, ingranaggio
+const int actPins[ACTNUM] = {2, 4, 6}; // relayFumo, relaySportello, relayIngranaggi
 const int devPins[DEVNUM] = {};
 
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xE1, 0x29}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+//04:E9:E5:07:A5:85
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x07, 0xA5, 0x85}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 1, 101};                     //This needs to be unique in your network - only one puzzle can have this IP
 
 #include <Bounce.h>
@@ -97,7 +99,6 @@ void gameUpdate() {
       Serial.print("pressed "); Serial.println(pressed);
       sensorRegUpdate(stato, pressed);
       if (pressed) {
-        digitalWrite(actPins[1], LOW); // apri sportello ingranaggi
         actuatorRegUpdate(1, HIGH);
         stato = CIAMBELLA;
       }
@@ -110,23 +111,22 @@ void gameUpdate() {
       Serial.print("pressed "); Serial.println(pressed);
       sensorRegUpdate(stato, pressed);
       if (pressed) {
-        digitalWrite(actPins[2], LOW); // attiva il motore degli ingranaggi
+        actuatorRegUpdate(2, HIGH); // attiva il motore degli ingranaggi
         // fai muovere l'orologio
         puzzleSolved = 1;
-        stato = 5;
+        stato = 4;
       }
       break;
+
+    case END:
+      break;
   }
-  //  sensorRegUpdate(0, puzzleSolved);
-  //  sensorRegUpdate(1, digitalRead(senPins[1]));
 }
 
 void smoke() {
   Serial.println("FUMO!");
-  digitalWrite(actPins[0], LOW);
   actuatorRegUpdate(0, HIGH);
   myDelay(1000);
-  digitalWrite(actPins[0], HIGH);
   actuatorRegUpdate(0, LOW);
 }
 
