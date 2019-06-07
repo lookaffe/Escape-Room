@@ -50,6 +50,7 @@ void gameUpdate() {
       fiore = !digitalRead(senPins[0]);
       sensorRegUpdate(0, fiore);
       if (fiore) {
+        myDelay(1000);
         actuatorRegUpdate(0, !fiore); // attiva l'elettrocalamita
         deviceRegUpdate(0, fiore); // usato per comunicare a Lorenzo l'attivazione del play sul totem
       }
