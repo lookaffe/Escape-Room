@@ -12,8 +12,8 @@
 const int senPins[SENNUM] = {}; // m1, m2, m3, m4
 const int actPins[ACTNUM] = {};
 const int devPins[DEVNUM] = {};
-
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0x66, 0xF4}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+//04:E9:E5:06:65:46
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0x65, 0x46}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 1, 102};                     //This needs to be unique in your network - only one puzzle can have this IP
 
 void resetSpec() {
