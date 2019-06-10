@@ -7,17 +7,21 @@
 #define SENNUM  12       //total amount of sensors
 #define ACTNUM  0       //total amount of actuators
 #define DEVNUM  6       //total amount of internal devices
-#define ALWAYSACTIVE 1  //1 if the game is always active
+#define ALWAYSACTIVE 0  //1 if the game is always active
 
 const int senPins[SENNUM] = {}; // mani uova
 const int actPins[ACTNUM] = {};
-const int devPins[DEVNUM] = {1, 2, 3, 4, 5,6}; // luci uova
+const int devPins[DEVNUM] = {1, 2, 3, 4, 5, 6}; // luci uova
 
 //04:E9:E5:07:A5:DF
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x07, 0xA5, 0xDF}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 1, 110};                     //This needs to be unique in your network - only one puzzle can have this IP
 
+bool started = false;
+int players = 0;
+
 void resetSpec() {
+  started = false;
 }
 
 #include <EscapeFunction.h>
@@ -67,12 +71,21 @@ void setup() {
 
   // initial data update
   MPR121.updateTouchData();
+
+  players = Mb.R[60];
 }
 
 void loop() {
   Mb.Run();
   listenFromEth();
-  if (!triggered) {
+
+  // Su comando da Control Room si attiva la sequenza luci
+  if (gameActivated && !started) {
+    flashing();
+    started = true;
+  }
+
+  if (!triggered && started) {
     gameUpdate();
     isPuzzleSolved();
   }
@@ -81,7 +94,7 @@ void loop() {
 
 void gameUpdate() {
   MPR121.updateTouchData();
-  for (int i = 0; i < SENNUM; i++) {
+  for (int i = 0; i < 2*players; i++) {
     if (MPR121.isNewTouch(i)) {
       Mb.R[SENSORS[i]] = 1;
       handOnEggs[i] = true;
@@ -92,16 +105,16 @@ void gameUpdate() {
       handOnEggs[i] = false;
     }
   }
-  for (int i = 0; i < SENNUM; i = i + 2) {    
+  for (int i = 0; i < 2*players; i = i + 2) {
     if ((handOnEggs[i] + handOnEggs[i + 1]) > 1) {
       digitalWrite(devPins[i / 2], HIGH);
-      Mb.R[DEVICES[(i/2)]] = HIGH;
+      Mb.R[DEVICES[(i / 2)]] = HIGH;
       eggCaptured[i / 2] = true;
       Serial.println("Egg " + (String)(i / 2) + "touched");
     }
     else {
       digitalWrite(devPins[i / 2], LOW);
-      Mb.R[DEVICES[(i/2)]] = LOW;
+      Mb.R[DEVICES[(i / 2)]] = LOW;
       eggCaptured[i / 2] = false;
       //Serial.println("Egg " + (String)(i/2) + "untouched");
     }
@@ -111,10 +124,24 @@ void gameUpdate() {
 }
 
 bool isAllEggsTouched() {
-  for ( int i = 0; i < SENNUM / 2; ++i ) {
+  for ( int i = 0; i < players; ++i ) {
     if ( eggCaptured[ i ] == false ) {
       return false;
     }
   }
   return true;
+}
+
+void flashing() {
+  uint8_t h = 0;
+  while (h < 10) {
+    for (uint8_t b = 0; b < players; b++) {
+      digitalWrite(devPins[b], HIGH);
+      Mb.R[DEVICES[b]] = HIGH;
+      myDelay(300);
+      digitalWrite(devPins[b], LOW);
+      Mb.R[DEVICES[b]] = LOW;
+    }
+    h++;
+  }
 }

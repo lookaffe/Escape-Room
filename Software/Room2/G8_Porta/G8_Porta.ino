@@ -4,21 +4,21 @@
 
 #define SENNUM  4       //total amount of sensors
 #define ACTNUM  0       //total amount of actuators
-#define DEVNUM  0       //total amount of internal devices
+#define DEVNUM  10       //total amount of internal devices
 #define ALWAYSACTIVE 1  //1 if the game is always active
 
 const int senPins[SENNUM] = {23, 21, 19, 17}; // le 4 parti della porta
 const int actPins[ACTNUM] = {};
-const int devPins[DEVNUM] = {};
+const int devPins[DEVNUM] = {0,0,0,0,0,0,0,0,0,0};
 
 //04:E9:E5:08:57:03
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x08, 0x57, 0x03}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 1, 108};                     //This needs to be unique in your network - only one puzzle can have this IP
 
-const int hitNum = 7;  // numero di colpi
+const int hitNum = 10;  // numero di colpi
 int hit = 0;
-int doorSequence[hitNum] = {2, 2, 3, 3, 0, 0, 1};      //the right sequence
-int yourDoorSequence[hitNum] = {0, 0, 0, 0, 0, 0, 0}; // user sequence
+int doorSequence[hitNum] = {2, 2, 3, 3, 0, 0, 1, 0, 0, 0};      //the right sequence
+int yourDoorSequence[hitNum] = {0, 0, 0, 0, 0, 0, 0, 0 , 0, 0}; // user sequence
 
 unsigned long interrupt_time = 0;
 unsigned long waiting_time = 3000;
@@ -29,7 +29,7 @@ const int knockFadeTime = 150;     // milliseconds we allow a knock to fade befo
 
 void resetSpec() {
   interrupt_time = millis();
-  hit=0;
+  hit = 0;
 }
 
 #include <EscapeFunction.h>
@@ -38,6 +38,9 @@ void setup()
 {
   setupEscape();
   interrupt_time = millis();
+  for (int i = 0; i < hitNum; i++) {
+    doorSequence[i] = deviceRegRead(i);
+  }
 }
 
 void loop()
@@ -64,7 +67,7 @@ void gameUpdate() {
         seq_clear(yourDoorSequence, hitNum);
         interrupt_time = millis();
       }
-      if(hit == 0)interrupt_time = millis();
+      if (hit == 0)interrupt_time = millis();
       hit = 0;
       stateRegUpdate(puzzleSolved);
     }
@@ -82,7 +85,7 @@ void knockOnDoor(int iter) {
       Serial.println("Hitted " + (String)y);
       interrupt_time = millis();
     }
-    sensorRegUpdate(y, hitted);   
+    sensorRegUpdate(y, hitted);
   }
 }
 
