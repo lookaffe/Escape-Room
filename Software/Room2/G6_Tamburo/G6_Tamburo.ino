@@ -1,4 +1,4 @@
-//Teensy 3.2
+//Teensy LC
 
 #define ONLINE
 
@@ -32,13 +32,13 @@ const int averageRejectValue = 15; // If the average timing of the knocks is off
 const int knockFadeTime = 150;     // milliseconds we allow a knock to fade before we listen for another one. (Debounce timer.)
 const int lockTurnTime = 650;      // milliseconds that we run the motor to get it to go a half turn.
 
-const int maximumKnocks = 20;       // Maximum number of knocks to listen for.
-const int knockComplete = 800;     // Longest time to wait for a knock before we assume that it's finished.
+const int maximumKnocks = 50;       // Maximum number of knocks to listen for.
+const int knockComplete = 1500;     // Longest time to wait for a knock before we assume that it's finished.
 
 // Variables.
-int secretCode[3][maximumKnocks] = {{50, 50, 25, 25, 50, 100, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  {50, 50, 25, 25, 50, 100, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  {50, 50, 25, 25, 50, 100, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};  // Initial setup: "Shave and a Hair Cut, two bits."
+int secretCode[3][maximumKnocks] = {{100, 35, 90, 15, 25, 15, 80, 10, 20, 10, 10, 10, 10, 20, 0, 0, 0, 0, 0, 0,50, 50, 25, 25, 50, 100, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,50, 50, 25, 25, 50, 100, 50, 0, 0, 0},
+  {50, 50, 25, 25, 50, 100, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,50, 50, 25, 25, 50, 100, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,50, 50, 25, 25, 50, 100, 50, 0, 0, 0},
+  {50, 50, 25, 25, 50, 100, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,50, 50, 25, 25, 50, 100, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,50, 50, 25, 25, 50, 100, 50, 0, 0, 0}};  // Initial setup: "Shave and a Hair Cut, two bits."
 int knockReadings[maximumKnocks];   // When someone knocks this array fills with delays between knocks.
 int knockSensorValue = 0;           // Last reading of the knock sensor.
 

@@ -75,21 +75,27 @@ void gameUpdate() {
 
     case ACQUA:
       Serial.print("STATo "); Serial.println(stato);
-      smokeTime = millis();
-      if (orologio) {
-        //tutti i giri da fare con il motore per l'orologio
-        myDelay(3000);
-        orologio = false;
-        smokeStartTime, smokeTime = millis();
-      }
-      if (smokeTime - smokeStartTime > SMOKEINTERVAL) {
-        smoke();
-        smokeStartTime = millis();
-      }
+//      smokeTime = millis();
+//      if (orologio) {
+//        //tutti i giri da fare con il motore per l'orologio
+//        myDelay(3000);
+//        orologio = false;
+//        smokeStartTime, smokeTime = millis();
+//      }
+//      if (smokeTime - smokeStartTime > SMOKEINTERVAL) {
+//        Serial.println("FUMO!");
+//        actuatorRegUpdate(0, HIGH);
+//        myDelay(1000);
+//        actuatorRegUpdate(0, LOW);
+//        smokeStartTime = millis();
+//      }
       water = analogRead(senPins[1]);
-      sensorRegUpdate(stato, water);
+
       Serial.print("Acqua "); Serial.println(water);
-      if (water > WATERLEVEL) stato = FIACCOLA;
+      if (water > WATERLEVEL) {
+        sensorRegUpdate(stato, 1);
+        stato = FIACCOLA;
+      }
       break;
 
     case FIACCOLA:
@@ -124,10 +130,7 @@ void gameUpdate() {
 }
 
 void smoke() {
-  Serial.println("FUMO!");
-  actuatorRegUpdate(0, HIGH);
-  myDelay(1000);
-  actuatorRegUpdate(0, LOW);
+
 }
 
 
