@@ -1,4 +1,4 @@
-//Teensy LCs
+//Teensy 3.2
 #include <MFRC522.h>
 #include <Servo.h>
 
@@ -7,14 +7,15 @@
 #define SENNUM  5       //total amount of sensors
 #define ACTNUM  1       //total amount of actuators
 #define DEVNUM  1       //total amount of internal devices
-#define ALWAYSACTIVE 1  //1 if the game is always active
+#define ALWAYSACTIVE 0  //1 if the game is always active
 
 const int senPins[SENNUM] = {14, 23, 19, 15, 6}; // SS pins1, SS pins2, temperatura, tempo, sportello, servo
 const int actPins[ACTNUM] = {5}; // elettrocalamita
-const int devPins[DEVNUM] = {0};  // servo (ma il pin del servo è diverso)
-//04:E9:E5:06:63:F0
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x66, 0x63, 0xF0}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
-uint8_t ip[] = {10, 0, 1, 114};                     //This needs to be unique in your network - only one puzzle can have this IP
+const int devPins[DEVNUM] = {0};  // controllo fine gioco
+
+//04:E9:E5:06:63:F0 - 04:E9:E5:07:A4:08
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x07, 0xA4, 0x08}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+uint8_t ip[] = {10, 0, 1, 113};                     //This needs to be unique in your network - only one puzzle can have this IP
 
 constexpr uint8_t RST_PIN = 17;          // Configurable, see typical pin layout above
 
@@ -32,10 +33,14 @@ int timeValue = 0;  // valore pot timer
 
 int state = 0;
 bool s = 0;
+bool checkActivation = false;
+
+//bool sensStatus[SENNUM] = {0,0,0,0,0};
 
 void resetSpec() {
   state = 0;
   resetServo();
+  checkActivation = false;
 }
 
 #include <EscapeFunction.h>
@@ -57,15 +62,27 @@ void loop()
 {
   Mb.Run();
   listenFromEth();
-  if (!triggered) {
-    gameUpdate();
-    isPuzzleSolved();
+
+  // move the motor to initial position on activation
+  if (gameActivated) {
+    if (!checkActivation) initServo();
+    checkActivation = true;
+
+    if (!triggered) {
+      gameUpdate();
+      isPuzzleSolved();
+    }
+
+    if(deviceRegRead(0)) {
+      resetServo();
+      deviceRegUpdate(0, 0);
+    }
   }
   //printRegister();
 }
 
 void gameUpdate() {
-  
+
   Serial.println(state);
   switch (state) {
     case 0:
@@ -73,19 +90,20 @@ void gameUpdate() {
       readPot();
       ovenClosed();
       s = checkStatus();
-      actuatorRegUpdate(1, s);
+      actuatorRegUpdate(0, s);
       myDelay(500);
-      if(s) state = 1;
+      if (s) state = 1;
+      if(Mb.R[STATE]){
+        moveServo();
+        puzzleSolved = true;      
+      }
       break;
     case 1:
-      for (int pos = 20; pos <= 180; pos += 1)
-      {
-        myservo.write(pos);
-        myDelay(25);
-      }
-      actuatorRegUpdate(1, 0);
+      moveServo();
+      actuatorRegUpdate(0, 0);
       state = 2;
-      myservo.detach();
+      myDelay(500);
+      puzzleSolved = true;
       break;
     case 2:
       break;
@@ -183,8 +201,7 @@ void ovenClosed() {
   sensorRegUpdate(4, sensStatus[4]);
 }
 
-void resetServo() {
-  myservo.detach();
+void initServo(){
   int pos = myservo.read();
   myservo.attach(servoPin);
   for (pos; pos >= 20; pos -= 1)
@@ -194,14 +211,38 @@ void resetServo() {
   }
 }
 
-bool checkStatus() {
-  
-  bool solv = true;
-  
-  for (int i = 0 ; i < SENNUM; i++) {
-    solv = solv && sensStatus[i];
+void moveServo(){
+  myservo.attach(servoPin);
+  for (int pos = 20; pos <= 180; pos += 1)
+  {
+    myservo.write(pos);
+    myDelay(25);
   }
-  
+}
+
+void resetServo() {
+  myservo.detach();
+  int pos = myservo.read();
+  myservo.attach(servoPin);
+  for (pos; pos >= 80; pos -= 1)
+  {
+    myservo.write(pos);
+    myDelay(25);
+  }
+  myservo.detach();
+}
+
+bool checkStatus() {
+  bool solv = true;
+  bool senSolv;
+  Serial.print("sens: ");
+  for (int i = 0 ; i < SENNUM; i++) {
+    senSolv = false;   
+    if(sensStatus[i]==1) senSolv = true;
+    Serial.print((String)senSolv + " - ");
+    solv = solv && senSolv;
+  }
+  Serial.println();
   return solv;
 }
 

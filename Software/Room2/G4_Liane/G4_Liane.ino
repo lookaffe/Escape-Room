@@ -4,12 +4,12 @@
 #define ONLINE
 
 #define SENNUM  3       //total amount of sensors
-#define ACTNUM  0       //total amount of actuators
+#define ACTNUM  1       //total amount of actuators
 #define DEVNUM  0       //total amount of internal devices
 #define ALWAYSACTIVE 1  //1 if the game is always active
 
 const int senPins[SENNUM] = {14, 15, 16}; // SS pins, Configurable, see typical pin layout above
-const int actPins[ACTNUM] = {};
+const int actPins[ACTNUM] = {5}; // relay elettrocalamita e pistone
 const int devPins[DEVNUM] = {};
 //04:E9:E5:06:63:F0
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x66, 0x63, 0xF0}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
@@ -31,12 +31,12 @@ void resetSpec() {
 void setup()
 {
   setupEscape();
-    //inizializzazione RFID
-    for (uint8_t i = 0; i < SENNUM; i++) {
-      mfrc522[i].PCD_Init(senPins[i], RST_PIN);   // Init mfrc522a
-      mfrc522[i].PCD_DumpVersionToSerial();  // Show details of PCD - mfrc522a Card Reader details
-      Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
-    }
+  //inizializzazione RFID
+  for (uint8_t i = 0; i < SENNUM; i++) {
+    mfrc522[i].PCD_Init(senPins[i], RST_PIN);   // Init mfrc522a
+    mfrc522[i].PCD_DumpVersionToSerial();  // Show details of PCD - mfrc522a Card Reader details
+    Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
+  }
 }
 
 void loop()
@@ -109,9 +109,9 @@ void gameUpdate() {
   for (uint8_t i = 0; i < SENNUM; i++) {
     mfrc522[i].PCD_Init();
     String readRFID = 0;
-//    Serial.print("Reader "); Serial.print(i);
-//    Serial.print(" - IsNewCardPresent "); Serial.print(mfrc522[i].PICC_IsNewCardPresent());
-//    Serial.print(" - ReadCardSerial "); Serial.println(mfrc522[i].PICC_ReadCardSerial());
+    //    Serial.print("Reader "); Serial.print(i);
+    //    Serial.print(" - IsNewCardPresent "); Serial.print(mfrc522[i].PICC_IsNewCardPresent());
+    //    Serial.print(" - ReadCardSerial "); Serial.println(mfrc522[i].PICC_ReadCardSerial());
     if ( mfrc522[i].PICC_IsNewCardPresent() && mfrc522[i].PICC_ReadCardSerial()) {
       Serial.print("newtag on reader "); Serial.println(i);
       for (int b = 0 ; b < mfrc522[i].uid.size; b++) readRFID.concat(mfrc522[i].uid.uidByte[b]);
@@ -133,7 +133,7 @@ void gameUpdate() {
       if (currentTAG[i].equals(correctTAG[y])) {
         found = true;
         tag = y;
-        Serial.print("Reader "); Serial.print(i);Serial.print(" - tag "); Serial.println(y);
+        Serial.print("Reader "); Serial.print(i); Serial.print(" - tag "); Serial.println(y);
       }
     }
     if (found) {
@@ -172,7 +172,8 @@ void gameUpdate() {
       }
     } else sensStatus[i] = 0;
     sensorRegUpdate(i, sensStatus[i]);
-    Serial.print("sensStatus[");Serial.print(i);Serial.print("] "); Serial.println(sensStatus[i]);   
-  }Serial.println();
+    Serial.print("sensStatus["); Serial.print(i); Serial.print("] "); Serial.println(sensStatus[i]);
+  } Serial.println();
   puzzleSolved = (sensStatus[0] == 1 && sensStatus[1] == 1 && sensStatus[2] == 1) ? true : false;
+  actuatorRegUpdate(0, puzzleSolved);
 }

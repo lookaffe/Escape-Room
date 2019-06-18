@@ -4,11 +4,12 @@ Servo myservo;
 int pos;
 
 void setup() {
-   myservo.attach(23);
+   myservo.attach(3);
+   delay(2000);
 }
  
 void loop() {
-   for (pos = 20; pos <= 180; pos += 1) 
+   for (pos = myservo.read(); pos <= 180; pos += 1) 
    {
       myservo.write(pos);              
       delay(25);                       
