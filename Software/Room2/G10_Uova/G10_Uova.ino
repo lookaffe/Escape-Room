@@ -9,7 +9,7 @@
 #define DEVNUM  6       //total amount of internal devices
 #define ALWAYSACTIVE 0  //1 if the game is always active
 
-const int senPins[SENNUM] = {}; // mani uova
+const int senPins[SENNUM] = {0,0,0,0,0,0,0,0,0,0,0,0}; // mani uova
 const int actPins[ACTNUM] = {};
 const int devPins[DEVNUM] = {1, 2, 3, 4, 5, 6}; // luci uova
 
@@ -72,7 +72,7 @@ void setup() {
   // initial data update
   MPR121.updateTouchData();
 
-  players = Mb.R[60];
+  players = 2; //Mb.R[60];
 }
 
 void loop() {
@@ -85,11 +85,11 @@ void loop() {
     started = true;
   }
 
-  if (!triggered && started) {
+  if (!triggered && gameActivated) {
     gameUpdate();
     isPuzzleSolved();
   }
-  printRegister();
+  //printRegister();
 }
 
 void gameUpdate() {
@@ -134,6 +134,7 @@ bool isAllEggsTouched() {
 
 void flashing() {
   uint8_t h = 0;
+  Serial.println("Flashing");
   while (h < 10) {
     for (uint8_t b = 0; b < players; b++) {
       digitalWrite(devPins[b], HIGH);
