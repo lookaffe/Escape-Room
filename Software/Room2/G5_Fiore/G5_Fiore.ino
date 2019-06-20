@@ -57,6 +57,9 @@ void gameUpdate() {
       break;
 
     case TOTEM:
+    //eventuale controllo se il fiore è presente
+//      fiore = !digitalRead(senPins[0]);
+//      sensorRegUpdate(0, fiore);
       ec = deviceRegRead(0); // se lorenzo può cambiarmi lo stato del registro...
       if(ec) actuatorRegUpdate(0, !ec); //disattiva l'elettrocalamita
       puzzleSolved = ec;
