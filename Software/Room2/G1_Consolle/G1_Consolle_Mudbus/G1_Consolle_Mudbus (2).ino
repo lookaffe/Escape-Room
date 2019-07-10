@@ -36,6 +36,7 @@ Bounce ingranaggio = Bounce(senPins[3], 100);
 long smokeStartTime, smokeTime;
 bool orologio = true;
 int water = 0;
+int wa = 0;
 
 uint8_t stato = TASTO;
 
@@ -70,25 +71,30 @@ void gameUpdate() {
       buttonsStart.update();
       pressed = buttonsStart.fallingEdge();
       sensorRegUpdate(stato, pressed);
+      //
+      wa = analogRead(senPins[1]);
+      Serial.print("Acqua "); Serial.println(wa);
+      sensorRegUpdate(1, wa);
+      //
       if (pressed) stato = ACQUA;
       break;
 
     case ACQUA:
       Serial.print("STATo "); Serial.println(stato);
-//      smokeTime = millis();
-//      if (orologio) {
-//        //tutti i giri da fare con il motore per l'orologio
-//        myDelay(3000);
-//        orologio = false;
-//        smokeStartTime, smokeTime = millis();
-//      }
-//      if (smokeTime - smokeStartTime > SMOKEINTERVAL) {
-//        Serial.println("FUMO!");
-//        actuatorRegUpdate(0, HIGH);
-//        myDelay(1000);
-//        actuatorRegUpdate(0, LOW);
-//        smokeStartTime = millis();
-//      }
+      //      smokeTime = millis();
+      //      if (orologio) {
+      //        //tutti i giri da fare con il motore per l'orologio
+      //        myDelay(3000);
+      //        orologio = false;
+      //        smokeStartTime, smokeTime = millis();
+      //      }
+      //      if (smokeTime - smokeStartTime > SMOKEINTERVAL) {
+      //        Serial.println("FUMO!");
+      //        actuatorRegUpdate(0, HIGH);
+      //        myDelay(1000);
+      //        actuatorRegUpdate(0, LOW);
+      //        smokeStartTime = millis();
+      //      }
       water = analogRead(senPins[1]);
 
       Serial.print("Acqua "); Serial.println(water);

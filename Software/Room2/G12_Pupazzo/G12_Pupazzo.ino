@@ -55,36 +55,6 @@ void gameUpdate() {
   for (uint8_t i = 0; i < SENNUM; i++) {
     mfrc522[i].PCD_Init();
     String readRFID = 0;
-    if ( mfrc522[i].PICC_IsNewCardPresent() && mfrc522[i].PICC_ReadCardSerial()) {
-      for (int b = 0 ; b < mfrc522[i].uid.size; b++) readRFID.concat(mfrc522[i].uid.uidByte[b]);
-    }
-    if (readRFID != currentTAG[i]) {
-      currentTAG[i] = readRFID;
-    }
-    //Halt PICC
-    mfrc522[i].PICC_HaltA();
-    // Stop encryption on PCD
-    mfrc522[i].PCD_StopCrypto1();
-  }
-
-  for (uint8_t i = 0; i < SENNUM; i++) {
-    // controllo dei valori dei tag sui lettori RFID
-    if (currentTAG[i].equals(correctTAG[i])) {
-      sensStatus[i] = HIGH;
-      Serial.print("Correct TAG-" + (String)i + " ");
-      Serial.println(currentTAG[i]);
-    } else  {
-      if (currentTAG[i] != "0") {
-        sensStatus[i] = 2;
-        Serial.print("TAG-" + (String)i + " ");
-        Serial.println(currentTAG[i]);
-      } else sensStatus[i] = LOW;
-    }
-    sensorRegUpdate(i, sensStatus[i]);
-  }// Look for new cards
-  for (uint8_t i = 0; i < SENNUM; i++) {
-    mfrc522[i].PCD_Init();
-    String readRFID = 0;
     //    Serial.print("Reader "); Serial.print(i);
     //    Serial.print(" - IsNewCardPresent "); Serial.print(mfrc522[i].PICC_IsNewCardPresent());
     //    Serial.print(" - ReadCardSerial "); Serial.println(mfrc522[i].PICC_ReadCardSerial());
