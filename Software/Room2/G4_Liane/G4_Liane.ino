@@ -3,12 +3,12 @@
 
 #define ONLINE
 
-#define SENNUM  2       //total amount of sensors
+#define SENNUM  3       //total amount of sensors
 #define ACTNUM  1       //total amount of actuators
 #define DEVNUM  0       //total amount of internal devices
 #define ALWAYSACTIVE 1  //1 if the game is always active
 
-const int senPins[SENNUM] = {14, 15};//, 16}; // SS pins, Configurable, see typical pin layout above
+const int senPins[SENNUM] = {0, 1, 2}; // SS pins, Configurable, see typical pin layout above
 const int actPins[ACTNUM] = {5}; // relay elettrocalamita e pistone
 const int devPins[DEVNUM] = {};
 //04:E9:E5:06:63:F0
@@ -17,11 +17,11 @@ uint8_t ip[] = {10, 0, 1, 104};                     //This needs to be unique in
 
 constexpr uint8_t RST_PIN = 17;          // Configurable, see typical pin layout above
 
-#include <EscapeFunction.h>
+
 
 MFRC522 mfrc522[SENNUM];  // Create mfrc522b instances
 
-const int nOfReaders = 2; //numero di RFID abilitati
+const int nOfReaders = 3; //numero di RFID abilitati
 const int nOfTAG = 3; //numero di TAG abilitati
 String currentTAG[nOfReaders]; //Valori del TAG letto
 String correctTAG[nOfTAG] = {"0786681131", "0276280131", "01574079131"};
@@ -29,16 +29,18 @@ String correctTAG[nOfTAG] = {"0786681131", "0276280131", "01574079131"};
 void resetSpec() {
 }
 
+#include <EscapeFunction.h>
+
 void setup()
 {
-  for (uint8_t i = 0; i < nOfReaders; i++) {
-    pinMode(senPins[i], OUTPUT);
-    digitalWrite(senPins[i], HIGH);
-  }
   setupEscape();
+  for (uint8_t i = 14; i < nOfReaders+14; i++) {
+    pinMode(i, OUTPUT);
+    digitalWrite(i, HIGH);
+  }
   //inizializzazione RFID
   for (uint8_t i = 0; i < SENNUM; i++) {
-    mfrc522[i].PCD_Init(senPins[i], RST_PIN);   // Init mfrc522a
+    mfrc522[i].PCD_Init(i+14, RST_PIN);   // Init mfrc522a
     mfrc522[i].PCD_DumpVersionToSerial();  // Show details of PCD - mfrc522a Card Reader details
     Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
   }
@@ -53,12 +55,12 @@ void loop()
     gameUpdate();
     isPuzzleSolved();
   }
-  //printRegister();
+  printRegister();
 }
 
 void gameUpdate() {
   // Look for new cards
-  boolean found = false;
+  boolean found[nOfReaders] = {false,false,false};
   for (uint8_t i = 0; i < nOfReaders; i++) {
     mfrc522[i].PCD_Init();
     String readRFID = 0;
@@ -67,7 +69,7 @@ void gameUpdate() {
     //    Serial.print(" - ReadCardSerial "); Serial.println(mfrc522[i].PICC_ReadCardSerial());
     if ( mfrc522[i].PICC_IsNewCardPresent() && mfrc522[i].PICC_ReadCardSerial()) {
       Serial.print("newtag on reader "); Serial.println(i);
-      found = true;
+      found[i] = true;
       for (int b = 0 ; b < mfrc522[i].uid.size; b++) readRFID.concat(mfrc522[i].uid.uidByte[b]);
     }
     if (readRFID != currentTAG[i]) {
@@ -83,11 +85,11 @@ void gameUpdate() {
     int tag = 10;
     // controllo dei valori dei tag sui lettori RFID
     for (uint8_t y = 0; y < nOfTAG; y++) {
-          if (currentTAG[i].equals(correctTAG[y])) {
+      if (currentTAG[i].equals(correctTAG[y])) {
         tag = y;
       }
     }
-if (found) {
+    if (found[i]) {
       if (i == tag) {
         sensStatus[i] = 1;
         Serial.print("Correct TAG-" + (String)i + " ");

@@ -24,7 +24,7 @@ unsigned long interrupt_time = 0;
 unsigned long waiting_time = 3000;
 
 // Tuning constants.  Could be made vars and hoooked to potentiometers for soft configuration, etc.
-const int threshold = 400;          // Minimum signal from the piezo to register as a knock
+const int threshold = 300;          // Minimum signal from the piezo to register as a knock
 const int knockFadeTime = 150;     // milliseconds we allow a knock to fade before we listen for another one. (Debounce timer.)
 
 void resetSpec() {
@@ -76,16 +76,23 @@ void gameUpdate() {
 }
 
 void knockOnDoor(int iter) {
+  int maxHit = 0;
+  int pointHitted = 0; 
   for (int y = 0; y < SENNUM; y++) {
     int hitted = analogRead(senPins[y]);
     if (hitted > threshold) {
-      yourDoorSequence[iter] = y;
+      if(hitted > maxHit){
+        maxHit = hitted;
+        pointHitted = y;
+      }
+      yourDoorSequence[iter] = pointHitted;     
       hit++;
       myDelay(knockFadeTime);
-      Serial.println("Hitted " + (String)y);
+      Serial.println("Hitted " + (String)y + " - intensity: " + (String) maxHit);
       interrupt_time = millis();
-    }
-    sensorRegUpdate(y, hitted);
+      deviceRegUpdate(iter, pointHitted+1);
+    }   
+    sensorRegUpdate(y, 1);
   }
 }
 
@@ -100,6 +107,7 @@ boolean seq_cmp(int *a, int *b, int siz) {
 void seq_clear(int *s, int siz) {
   for (int n = 0; n < siz; n++)  {
     s[n] = 0;
+    deviceRegUpdate(n, 0);
   }
   Serial.println("seq_clear");
 }
