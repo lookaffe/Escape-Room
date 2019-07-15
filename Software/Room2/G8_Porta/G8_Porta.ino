@@ -1,6 +1,6 @@
 //Teensy 3.2
 
-#define ONLINE // if you are working without ethernet comment this define
+//#define ONLINE // if you are working without ethernet comment this define
 
 #define SENNUM  4       //total amount of sensors
 #define ACTNUM  0       //total amount of actuators
@@ -24,7 +24,7 @@ unsigned long interrupt_time = 0;
 unsigned long waiting_time = 3000;
 
 // Tuning constants.  Could be made vars and hoooked to potentiometers for soft configuration, etc.
-const int threshold = 300;          // Minimum signal from the piezo to register as a knock
+const int threshold = 400;          // Minimum signal from the piezo to register as a knock
 const int knockFadeTime = 150;     // milliseconds we allow a knock to fade before we listen for another one. (Debounce timer.)
 
 void resetSpec() {
@@ -39,7 +39,7 @@ void setup()
   setupEscape();
   interrupt_time = millis();
   for (int i = 0; i < hitNum; i++) {
-    doorSequence[i] = deviceRegRead(i);
+    //doorSequence[i] = deviceRegRead(i);
   }
 }
 

@@ -8,6 +8,7 @@
 #define ALWAYSACTIVE 1  //1 if the game is always active
 
 //Stati
+#define INIT 10
 #define TASTO 0     // stato in attesa della pressione del TASTO
 #define ACQUA 1     // stato in attesa della pressione dell'ACQUA
 #define FIACCOLA 2  // stato in attesa della pressione della FIACCOLA
@@ -17,7 +18,7 @@
 #define SMOKEINTERVAL 5000  // intervallo tra una fumata e l'altra
 #define WATERLEVEL 50      // valore per presenza acqua
 
-const int senPins[SENNUM] = {21, 23, 17, 16}; // pulsanti, acqua, fiaccola, ingranaggio
+const int senPins[SENNUM] = {21, 22, 17, 16}; // pulsanti, acqua, fiaccola, ingranaggio
 const int actPins[ACTNUM] = {2, 4, 6}; // relayFumo, relaySportello, relayIngranaggi
 const int devPins[DEVNUM] = {};
 
@@ -38,10 +39,12 @@ bool orologio = true;
 int water = 0;
 int wa = 0;
 
-uint8_t stato = TASTO;
+uint8_t stato = INIT;
+
+
 
 void resetSpec() {
-  stato = 0;
+  stato = 10;
 }
 
 #include <EscapeFunction.h>
@@ -66,6 +69,10 @@ void loop()
 void gameUpdate() {
   bool pressed = 0;
   switch (stato) {
+    case INIT:
+    actuatorRegUpdate(2, HIGH); // attiva il motore degli ingranaggi
+    stato = TASTO;
+    break;
     case TASTO:
       Serial.print("STATo "); Serial.println(stato);
       buttonsStart.update();
@@ -123,14 +130,15 @@ void gameUpdate() {
       Serial.print("pressed "); Serial.println(pressed);
       sensorRegUpdate(stato, pressed);
       if (pressed) {
-        actuatorRegUpdate(2, HIGH); // attiva il motore degli ingranaggi
-        // fai muovere l'orologio
-        puzzleSolved = 1;
+        actuatorRegUpdate(2, LOW); // attiva il motore degli ingranaggi
+        // fai muovere l'orologio       
         stato = 4;
       }
       break;
 
     case END:
+      puzzleSolved = 1;
+      actuatorRegUpdate(1, LOW);
       break;
   }
 }

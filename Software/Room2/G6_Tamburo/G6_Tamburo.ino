@@ -1,11 +1,11 @@
-//Teensy LC
+//Teensy 3.2
 
 #define ONLINE
 
 #define SENNUM  1       //total amount of sensors
 #define ACTNUM  0       //total amount of actuators
 #define DEVNUM  3       //total amount of internal devices
-#define ALWAYSACTIVE 0  //1 if the game is always active
+#define ALWAYSACTIVE 1  //1 if the game is always active
 
 const int senPins[SENNUM] = {23}; //
 const int actPins[ACTNUM] = {};
@@ -26,10 +26,10 @@ void resetSpec() {
 const int knockSensor = 23;         // Piezo sensor on pin 0.
 
 // Tuning constants.  Could be made vars and hoooked to potentiometers for soft configuration, etc.
-const int threshold = 300;           // Minimum signal from the piezo to register as a knock
+const int threshold = 650;           // Minimum signal from the piezo to register as a knock
 const int rejectValue = 25;        // If an individual knock is off by this percentage of a knock we don't unlock..
 const int averageRejectValue = 15; // If the average timing of the knocks is off by this percent we don't unlock.
-const int knockFadeTime = 100;     // milliseconds we allow a knock to fade before we listen for another one. (Debounce timer.)
+const int knockFadeTime = 200;     // milliseconds we allow a knock to fade before we listen for another one. (Debounce timer.)
 
 const int maximumKnocks = 50;       // Maximum number of knocks to listen for.
 const int knockComplete = 1500;     // Longest time to wait for a knock before we assume that it's finished.

@@ -42,12 +42,12 @@ void loop()
 void gameUpdate() {
   bool ps = true;
   for(int i = 0; i<SENNUM; i++) {
-    bool pres = digitalRead(senPins[i]);
+    bool pres = !digitalRead(senPins[i]);
     ps = ps && pres;
     sensorRegUpdate(i, pres);
     Serial.print(" Uccello " + (String)i + ": pres - " + (String)pres);
   }
   Serial.println();
   puzzleSolved = ps;
-  stateRegUpdate(puzzleSolved);
+  //stateRegUpdate(puzzleSolved);
 }
