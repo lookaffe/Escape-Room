@@ -34,7 +34,7 @@ constexpr uint8_t RST_PIN = 17;          // Configurable, see typical pin layout
 MFRC522 mfrc522;  // Create mfrc522b instances
 
 String currentTAG; //Valori del TAG letto
-String correctTAG = {"023712421943"};
+String correctTAG[3] = {"023712421943", "01612390219", "0643090219" };
 
 void resetSpec() {
   sparkCount = 0;
@@ -79,7 +79,7 @@ void gameUpdate() {
     sparkCount = 0;
     currentTAG = "0";
   }
-  if ((sparkCount > minCount) && (currentTAG==correctTAG)) {
+  if ((sparkCount > minCount) && ((currentTAG==correctTAG[0]) || (currentTAG==correctTAG[1]) || (currentTAG==correctTAG[2]))) {
     puzzleSolved = true;
     actuatorRegUpdate(0,1); // apri l'elettrocalamita
   }

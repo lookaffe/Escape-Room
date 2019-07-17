@@ -2,16 +2,16 @@
 
 #include <MPR121.h>
 
-#define ONLINE // if you are working without ethernet comment this define
+//#define ONLINE // if you are working without ethernet comment this define
 
 #define SENNUM  12       //total amount of sensors
 #define ACTNUM  0       //total amount of actuators
 #define DEVNUM  6       //total amount of internal devices
-#define ALWAYSACTIVE 0  //1 if the game is always active
+#define ALWAYSACTIVE 1  //1 if the game is always active
 
 const int senPins[SENNUM] = {0,0,0,0,0,0,0,0,0,0,0,0}; // mani uova
 const int actPins[ACTNUM] = {};
-const int devPins[DEVNUM] = {1, 2, 3, 4, 5, 6}; // luci uova
+const int devPins[DEVNUM] = {1, 2, 3, 5, 6, 7}; // luci uova
 
 //04:E9:E5:07:A5:DF
 uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x07, 0xA5, 0xDF}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
@@ -59,7 +59,7 @@ void setup() {
         break;
     }
     CPU_RESTART;
-  } else Serial.println("Tutto ok");
+  } else Serial.println("MPR121 ok");
 
   // this is the touch threshold - setting it low makes it more like a proximity trigger
   // default value is 40 for touch
@@ -72,18 +72,18 @@ void setup() {
   // initial data update
   MPR121.updateTouchData();
 
-  players = 2; //Mb.R[60];
+  players = 6; //Mb.R[60];
 }
 
 void loop() {
   Mb.Run();
   listenFromEth();
-
-  // Su comando da Control Room si attiva la sequenza luci
-  if (gameActivated && !started) {
-    flashing();
-    started = true;
-  }
+//
+//  // Su comando da Control Room si attiva la sequenza luci
+//  if (gameActivated && !started) {
+//    //flashing();
+//    started = true;
+//  }
 
   if (!triggered && gameActivated) {
     gameUpdate();
@@ -96,31 +96,31 @@ void gameUpdate() {
   MPR121.updateTouchData();
   for (int i = 0; i < 2*players; i++) {
     if (MPR121.isNewTouch(i)) {
-      Mb.R[SENSORS[i]] = 1;
+      sensorRegUpdate(i, 1);
       handOnEggs[i] = true;
       Serial.println("Hand " + (String)(i) + "touched");
       delay(10);
     } else if (MPR121.isNewRelease(i)) {
-      Mb.R[SENSORS[i]] = 0;
+      sensorRegUpdate(i, 0);
       handOnEggs[i] = false;
     }
   }
-  for (int i = 0; i < 2*players; i = i + 2) {
-    if ((handOnEggs[i] + handOnEggs[i + 1]) > 1) {
-      digitalWrite(devPins[i / 2], HIGH);
-      Mb.R[DEVICES[(i / 2)]] = HIGH;
-      eggCaptured[i / 2] = true;
-      Serial.println("Egg " + (String)(i / 2) + "touched");
-    }
-    else {
-      digitalWrite(devPins[i / 2], LOW);
-      Mb.R[DEVICES[(i / 2)]] = LOW;
-      eggCaptured[i / 2] = false;
-      //Serial.println("Egg " + (String)(i/2) + "untouched");
-    }
-    delay(10);
-  }
-  puzzleSolved = isAllEggsTouched();
+//  for (int i = 0; i < 2*players; i = i + 2) {
+//    if ((handOnEggs[i] + handOnEggs[i + 1]) > 1) {
+//      digitalWrite(devPins[i / 2], HIGH);
+//      deviceRegUpdate(i/2, HIGH);
+//      eggCaptured[i / 2] = true;
+//      Serial.println("Egg " + (String)(i / 2) + "touched");
+//    }
+//    else {
+//      digitalWrite(devPins[i / 2], LOW);
+//      deviceRegUpdate(i/2, LOW);
+//      eggCaptured[i / 2] = false;
+//      //Serial.println("Egg " + (String)(i/2) + "untouched");
+//    }
+//    delay(10);
+//  }
+//  puzzleSolved = isAllEggsTouched();
 }
 
 bool isAllEggsTouched() {

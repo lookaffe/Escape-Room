@@ -11,8 +11,8 @@
 const int senPins[SENNUM] = {0, 1, 2}; // SS pins, Configurable, see typical pin layout above
 const int actPins[ACTNUM] = {5}; // relay elettrocalamita e pistone
 const int devPins[DEVNUM] = {};
-//04:E9:E5:06:63:F0
-uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x06, 0xDA, 0x92}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
+//04:E9:E5:08:57:04
+uint8_t mac[] = {0x04, 0xE9, 0xE5, 0x08, 0x57, 0x04}; //Dipende da ogni dispositivo, da trovare con T3_readmac.ino (Teensy) o generare (Arduino)
 uint8_t ip[] = {10, 0, 1, 104};                     //This needs to be unique in your network - only one puzzle can have this IP
 
 constexpr uint8_t RST_PIN = 17;          // Configurable, see typical pin layout above
@@ -44,7 +44,6 @@ void setup()
     mfrc522[i].PCD_DumpVersionToSerial();  // Show details of PCD - mfrc522a Card Reader details
     Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
   }
-
 }
 
 void loop()

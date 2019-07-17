@@ -24,7 +24,7 @@ unsigned long interrupt_time = 0;
 unsigned long waiting_time = 3000;
 
 // Tuning constants.  Could be made vars and hoooked to potentiometers for soft configuration, etc.
-const int threshold = 300;          // Minimum signal from the piezo to register as a knock
+const int threshold = 400;          // Minimum signal from the piezo to register as a knock
 const int knockFadeTime = 150;     // milliseconds we allow a knock to fade before we listen for another one. (Debounce timer.)
 
 void resetSpec() {
